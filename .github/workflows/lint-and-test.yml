@@ -15,38 +15,22 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.11'
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-      - name: Configure Poetry
-        run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project false
-      - uses: chartboost/ruff-action@v1
+          version: "0.8.18"
+          python-version: "3.11"
+          enable-cache: true
+      - uses: astral-sh/ruff-action@v1
         with:
           args: check --fix -e --no-cache
-      - name: Set up cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
-      - name: Install dependencies
-        run: |
-          poetry install
+      - name: Install dependencies (uv)
+        run: uv sync --locked --dev
       - uses: reviewdog/action-suggester@v1
         with:
           tool_name: ruff
-      - uses: tsuyoshicho/action-mypy@v3
-        with:
-          level: warning
-          setup_command: poetry add mypy
-          execute_command: poetry run mypy
+      - name: mypy
+        run: uvx --from mypy mypy .
 
   test:
     runs-on: ubuntu-24.04
@@ -75,36 +59,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{ matrix.PYTHON_VERSION}}
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-      - name: Configure Poetry
-        run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project false
-      - name: Set up cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
-      - name: Install dependencies
-        run: |
-          poetry install
+          version: "0.8.18"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: Install dependencies (uv)
+        run: uv sync --locked --dev
       - name: set pythonpath
         run: |
           echo "PYTHONPATH=src" >> $GITHUB_ENV
       - name: Initialize database
         run: |
-          poetry run airflow db init
+          uv run airflow db init
       - name: Start SFTP server
         run: |
           docker run -p 2222:22 -d atmoz/sftp test_user:pass:::root_folder
       - name: Run tests with pytest
         run: |
-          poetry run pytest tests/ --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+          uv run pytest tests/ --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
