@@ -3,6 +3,7 @@ import logging
 import sys
 import typing
 import urllib.parse
+from sqlalchemy.engine import URL
 
 import pandas as pd
 from airflow.hooks.base import BaseHook
@@ -94,24 +95,48 @@ class FilesystemToDatabaseOperator(BaseOperator):
         filesystem = FilesystemFactory.get_data_lake_filesystem(
             connection=BaseHook.get_connection(self.filesystem_conn_id),
         )
-
         logger.info(
             f"Create SQLAlchemy engine with connection_id {self.database_conn_id}"
         )
         conn = BaseHook.get_connection(self.database_conn_id)
-        password_encoded = urllib.parse.quote_plus(conn.password)
-        engine = create_engine(
-            f"postgresql://{conn.login}:{password_encoded}@{conn.host}:{conn.port}/{conn.schema}"
-        )
 
-        for blob_path in filesystem.list_files(prefix=self.filesystem_path):
-            if not blob_path.endswith(
-                (f".{self.source_format}", f".{self.source_format}.gz")
-            ):
+        if conn.conn_type == "sqlite":
+            # In your fixture, the DB path is stored in `host`
+            url = URL.create(
+                "sqlite",
+                database=conn.host,  # absolute path, e.g. /tmp/pytest-.../test_db.sqlite
+            )
+        else:
+            # Generic case (Postgres, MySQL, etc.)
+            url = URL.create(
+                conn.conn_type,              # e.g. "postgresql"
+                username=conn.login,
+                password=conn.password,      # may be None → handled safely
+                host=conn.host,
+                port=conn.port,
+                database=conn.schema,
+            )
+
+        engine = create_engine(url)
+
+        
+        #TODO: check prefix argument in filesystem.list_files
+        for blob_path in filesystem.list_files(""):
+            if not blob_path.startswith(self.filesystem_path):
                 logger.warning(
-                    f"Blob {blob_path} is not in the right format. Skipping..."
+                    f"Blob {blob_path} is not under the expected prefix {self.filesystem_path}. Skipping..."
                 )
                 continue
+            
+            # Check the file extension is one of accepted, 
+            #TODO: make it extensible for all format we accept
+            # if not blob_path.endswith(
+            #     (f".{self.source_format}", f".{self.source_format}.gz")
+            # ):
+            #     logger.warning(
+            #         f"Blob {blob_path} is not in the right format. Skipping..."
+            #     )
+            #     continue
 
             logger.info(f"Read file {blob_path} and convert to pandas")
             raw_content = io.BytesIO(filesystem.read(blob_path))

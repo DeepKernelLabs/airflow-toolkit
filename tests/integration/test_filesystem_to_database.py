@@ -9,8 +9,6 @@ from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import
     FilesystemToDatabaseOperator,
 )
 
-# TODO: DEBUG why that FilesystemToDatabaseOperator is not correctly writing data to the db.
-import pdb
 
 def _write_csv_for_ds(root: Path, exec_date: pendulum.DateTime, filename: str = "test.csv") -> Path:
     folder = root 
@@ -33,7 +31,6 @@ def test_source_file_to_database(dag, sa_session, tmp_path, sqlite_connection, l
     assert BaseHook.get_connection("local_fs_test").extra_dejson["path"] == str(folder)
     assert BaseHook.get_connection("sqlite_test").conn_type == "sqlite"
 
-    # Create target table (or let your operator create it, if that’s its job)
     src = BaseHook.get_connection("sqlite_test").get_hook()
     src.run(sql=[
         """
@@ -44,12 +41,11 @@ def test_source_file_to_database(dag, sa_session, tmp_path, sqlite_connection, l
         )
         """
     ])
-
     with dag:
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path='data_lake/{{ ds.replace("-", "/") }}/',
+            filesystem_path=str(folder),
             db_table="test_table",
             task_id="filesystem_to_database_test",
             metadata={
@@ -73,7 +69,6 @@ def test_source_file_to_database(dag, sa_session, tmp_path, sqlite_connection, l
     # 1  4  5  6  2023-10-01 00:00:00.000000  2023-09-30T00:00:00+00:00  2023-10-01T00:00:00+00:00  2024-10-25T12:54:13.211896+02:00  /tmp/.../test.csv
     # 2  7  8  9  2023-10-01 00:00:00.000000  2023-09-30T00:00:00+00:00  2023-10-01T00:00:00+00:00  2024-10-25T12:54:13.211896+02:00  /tmp/.../test.csv
     
-    # pdb.set_trace()
 
     assert len(df) == 3
     assert str(df.iloc[0]["_DS"]) == execution_date.to_datetime_string()
@@ -101,7 +96,7 @@ def test_source_file_with_less_columns_that_database(dag, sa_session, sqlite_con
     """
 
     exec_date = pendulum.datetime(2023, 10, 1)
-    _ = _write_csv_for_ds(Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date)
+    folder = _write_csv_for_ds(Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date)
 
     sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
     sqlite_hook.run(
@@ -115,7 +110,7 @@ def test_source_file_with_less_columns_that_database(dag, sa_session, sqlite_con
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path="data_lake/{{ ds.replace('-', '/') }}/",
+            filesystem_path=str(folder),
             db_table="test_csv_with_less_columns_that_database",
             task_id="filesystem_to_database_test",
             metadata={"_DS": "{{ ds }}"},
@@ -152,7 +147,7 @@ def test_source_file_with_more_columns_than_database(dag, sa_session, sqlite_con
     """
 
     exec_date = pendulum.datetime(2023, 10, 1)
-    _ = _write_csv_for_ds(Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date)
+    folder = _write_csv_for_ds(Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date)
 
     sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
     sqlite_hook.run(
@@ -166,7 +161,7 @@ def test_source_file_with_more_columns_than_database(dag, sa_session, sqlite_con
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path="data_lake/{{ ds.replace('-', '/') }}/",
+            filesystem_path=str(folder),
             db_table="test_csv_with_more_columns_than_database",
             task_id="filesystem_to_database_test",
             metadata={"_DS": "{{ ds }}"},
@@ -201,7 +196,7 @@ def test_source_file_and_database_with_different_columns(dag, sa_session, sqlite
     not defined in the source file.
     """
     exec_date = pendulum.datetime(2023, 10, 1)
-    _ = _write_csv_for_ds(Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date)
+    folder = _write_csv_for_ds(Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date)
 
     sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
     sqlite_hook.run(
@@ -215,7 +210,7 @@ def test_source_file_and_database_with_different_columns(dag, sa_session, sqlite
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path="data_lake/{{ ds.replace('-', '/') }}/",
+            filesystem_path=str(folder),
             db_table="test_csv_with_more_columns_than_database",
             task_id="filesystem_to_database_test",
             metadata={"_DS": "{{ ds }}"},
