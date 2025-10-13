@@ -85,7 +85,7 @@ def dag():
     """
     dag_id = f"test_{uuid.uuid4().hex[:8]}"
     default_args = {"start_date": pendulum.datetime(2023, 1, 1)}
-    with DAG(dag_id=dag_id, schedule=None, default_args=default_args) as d:
+    with DAG(dag_id=dag_id, schedule="@daily", default_args=default_args) as d:
         yield d
     # with DAG(
     #     dag_id='test-dag',
