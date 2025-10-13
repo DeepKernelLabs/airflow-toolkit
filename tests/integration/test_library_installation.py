@@ -6,6 +6,8 @@ import pytest
 
 logger = logging.getLogger(__file__)
 
+#TODO: debug why ERROR tests/integration/test_library_installation.py::test_import_package - SystemExit: 1
+
 
 @pytest.fixture
 def virtual_environment(tmp_path):
