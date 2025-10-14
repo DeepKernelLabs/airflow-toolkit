@@ -23,7 +23,6 @@ def virtual_environment(tmp_path):
 
 def install_package(venv_path: Path, package: str, cwd: Path):
     """Install the given package using `uv` inside the given virtualenv."""
-    python_bin = venv_path / "bin" / "python"
     subprocess.check_call(["uv", "pip", "install", "--python", f"{venv_path}/bin/python", package], cwd=cwd)
 
 

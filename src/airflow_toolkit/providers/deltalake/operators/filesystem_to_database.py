@@ -2,7 +2,6 @@ import io
 import logging
 import sys
 import typing
-import urllib.parse
 from sqlalchemy.engine import URL
 
 import pandas as pd
