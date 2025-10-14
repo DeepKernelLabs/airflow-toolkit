@@ -8,9 +8,11 @@ import virtualenv
 
 logger = logging.getLogger(__file__)
 
+
 @pytest.fixture
 def project_path():
     return Path(__file__).resolve().parents[2]  # Adjust if needed
+
 
 @pytest.fixture
 def virtual_environment(tmp_path):
@@ -23,7 +25,10 @@ def virtual_environment(tmp_path):
 
 def install_package(venv_path: Path, package: str, cwd: Path):
     """Install the given package using `uv` inside the given virtualenv."""
-    subprocess.check_call(["uv", "pip", "install", "--python", f"{venv_path}/bin/python", package], cwd=cwd)
+    subprocess.check_call(
+        ["uv", "pip", "install", "--python", f"{venv_path}/bin/python", package],
+        cwd=cwd,
+    )
 
 
 def make_env(venv_path: Path, airflow_home: Path) -> dict:
@@ -94,7 +99,10 @@ def test_import_package(virtual_environment, project_path, tmp_path):
 
     except subprocess.CalledProcessError as e:
         logger.exception(e)
-        pytest.fail(f"Failed to import or register the package in clean env: {e.output}")
+        pytest.fail(
+            f"Failed to import or register the package in clean env: {e.output}"
+        )
+
 
 def test_s3_connection_available(virtual_environment, tmp_path):
     airflow_home = tmp_path / "af_home"
@@ -107,7 +115,7 @@ def test_s3_connection_available(virtual_environment, tmp_path):
     output = subprocess.check_output(
         ["airflow", "connections", "get", "data_lake_test"],
         env=env,
-        universal_newlines=True
+        universal_newlines=True,
     )
 
     print("AIRFLOW OUTPUT:", output)  # Helpful for debugging

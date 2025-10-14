@@ -108,9 +108,9 @@ class FilesystemToDatabaseOperator(BaseOperator):
         else:
             # Generic case (Postgres, MySQL, etc.)
             url = URL.create(
-                conn.conn_type,              # e.g. "postgresql"
+                conn.conn_type,  # e.g. "postgresql"
                 username=conn.login,
-                password=conn.password,      # may be None → handled safely
+                password=conn.password,  # may be None → handled safely
                 host=conn.host,
                 port=conn.port,
                 database=conn.schema,
@@ -118,17 +118,16 @@ class FilesystemToDatabaseOperator(BaseOperator):
 
         engine = create_engine(url)
 
-        
-        #TODO: check prefix argument in filesystem.list_files
+        # TODO: check prefix argument in filesystem.list_files
         for blob_path in filesystem.list_files(""):
             if not blob_path.startswith(self.filesystem_path):
                 logger.warning(
                     f"Blob {blob_path} is not under the expected prefix {self.filesystem_path}. Skipping..."
                 )
                 continue
-            
-            # Check the file extension is one of accepted, 
-            #TODO: make it extensible for all format we accept
+
+            # Check the file extension is one of accepted,
+            # TODO: make it extensible for all format we accept
             # if not blob_path.endswith(
             #     (f".{self.source_format}", f".{self.source_format}.gz")
             # ):
