@@ -97,3 +97,19 @@ def test_import_package(virtual_environment, project_path, tmp_path):
         logger.exception(e)
         pytest.fail(f"Failed to import or register the package in clean env: {e.output}")
 
+def test_s3_connection_available(virtual_environment, tmp_path):
+    airflow_home = tmp_path / "af_home"
+    airflow_home.mkdir(exist_ok=True)
+    env = make_env(virtual_environment, airflow_home)
+
+    # init DB (if needed explicitly here)
+    subprocess.check_call(["airflow", "db", "init"], env=env)
+
+    output = subprocess.check_output(
+        ["airflow", "connections", "get", "data_lake_test"],
+        env=env,
+        universal_newlines=True
+    )
+
+    print("AIRFLOW OUTPUT:", output)  # Helpful for debugging
+    assert "data_lake_test" in output
