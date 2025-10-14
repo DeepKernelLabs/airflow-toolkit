@@ -4,6 +4,7 @@ import uuid
 import subprocess
 
 import boto3
+from botocore.config import Config
 import pendulum
 import pytest
 
@@ -14,6 +15,7 @@ import json
 from airflow.models import Connection
 from airflow.utils.session import create_session
 
+
 # ---------- Paths ----------
 @pytest.fixture
 def project_path() -> Path:
@@ -22,12 +24,12 @@ def project_path() -> Path:
 
 @pytest.fixture
 def source_path(project_path) -> Path:
-    return project_path / 'src'
+    return project_path / "src"
 
 
 @pytest.fixture
 def tests_path(project_path) -> Path:
-    return project_path / 'tests'
+    return project_path / "tests"
 
 
 @pytest.fixture
@@ -35,6 +37,7 @@ def load_airflow_test_config() -> Path:
     from airflow.configuration import conf
 
     return conf.load_test_config()
+
 
 # ---------- Airflow DB isolation ----------
 @pytest.fixture(autouse=True)
@@ -61,6 +64,7 @@ def fresh_airflow_db_per_test(tmp_path, monkeypatch):
 
     yield
     # nothing to teardown; tmp_path is cleaned by pytest
+
 
 @pytest.fixture
 def sa_session():
@@ -99,7 +103,7 @@ def dag():
 @pytest.fixture
 def s3_bucket(s3_resource):
     """Delete all objects in the specified S3 bucket."""
-    bucket_name = os.environ['TEST_BUCKET']
+    bucket_name = os.environ["TEST_BUCKET"]
     bucket = s3_resource.Bucket(bucket_name)
     bucket.objects.all().delete()
     return bucket_name
@@ -107,24 +111,30 @@ def s3_bucket(s3_resource):
 
 @pytest.fixture
 def s3_resource():
-    endpoint_url = os.environ['S3_ENDPOINT_URL']
-    return boto3.resource('s3', endpoint_url=endpoint_url)
+    endpoint_url = os.environ["S3_ENDPOINT_URL"]
+    return boto3.resource("s3", endpoint_url=endpoint_url)
 
 
 @pytest.fixture
 def s3_client():
-    endpoint_url = os.environ['S3_ENDPOINT_URL']
-    return boto3.client('s3', endpoint_url=endpoint_url)
+    endpoint_url = os.environ["S3_ENDPOINT_URL"]
+    return boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        config=Config(s3={"addressing_style": "path", "use_expect_header": False}),
+    )
+    # return boto3.client('s3', endpoint_url=endpoint_url)
 
 
 @pytest.fixture
 def local_fs_conn_params(tmp_path):
     return {
-        'conn_type': 'fs',
-        'extra': {
-            'path': str(tmp_path),
+        "conn_type": "fs",
+        "extra": {
+            "path": str(tmp_path),
         },
     }
+
 
 # -----
 @pytest.fixture
@@ -132,6 +142,7 @@ def sqlite_database(tmp_path: Path):
     db = tmp_path / "test_db.sqlite"
     db.touch()
     return db
+
 
 @pytest.fixture
 def sqlite_connection(sqlite_database: Path):
@@ -143,7 +154,9 @@ def sqlite_connection(sqlite_database: Path):
             .one_or_none()
         )
         if existing is None:
-            session.add(Connection(conn_id="sqlite_test", conn_type="sqlite", host=abs_path))
+            session.add(
+                Connection(conn_id="sqlite_test", conn_type="sqlite", host=abs_path)
+            )
         else:
             existing.conn_type = "sqlite"
             existing.host = abs_path
@@ -168,7 +181,9 @@ def local_fs_connection(tmp_path: Path):
             .one_or_none()
         )
         if existing is None:
-            session.add(Connection(conn_id="local_fs_test", conn_type="fs", extra=extra))
+            session.add(
+                Connection(conn_id="local_fs_test", conn_type="fs", extra=extra)
+            )
         else:
             existing.conn_type = "fs"
             existing.extra = extra
