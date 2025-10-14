@@ -9,18 +9,25 @@ from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import
 )
 
 
-def _write_csv_for_ds(root: Path, exec_date: pendulum.DateTime, filename: str = "test.csv") -> Path:
-    folder = root 
+def _write_csv_for_ds(
+    root: Path, exec_date: pendulum.DateTime, filename: str = "test.csv"
+) -> Path:
+    folder = root
     folder.mkdir(parents=True, exist_ok=True)
-    (folder / filename).write_text(textwrap.dedent("""\
+    (folder / filename).write_text(
+        textwrap.dedent("""\
         a,b,c
         1,2,3
         4,5,6
         7,8,9
-    """))
+    """)
+    )
     return folder
 
-def test_source_file_to_database(dag, sa_session, tmp_path, sqlite_connection, local_fs_connection):
+
+def test_source_file_to_database(
+    dag, sa_session, tmp_path, sqlite_connection, local_fs_connection
+):
     execution_date = pendulum.datetime(2023, 10, 1)
 
     fs_root = Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"])
@@ -31,15 +38,17 @@ def test_source_file_to_database(dag, sa_session, tmp_path, sqlite_connection, l
     assert BaseHook.get_connection("sqlite_test").conn_type == "sqlite"
 
     src = BaseHook.get_connection("sqlite_test").get_hook()
-    src.run(sql=[
-        """
+    src.run(
+        sql=[
+            """
         CREATE TABLE IF NOT EXISTS test_table (
             a INTEGER, b INTEGER, c INTEGER,
             _DS TEXT, _INTERVAL_START TEXT, _INTERVAL_END TEXT,
             _LOADED_AT TEXT, _LOADED_FROM TEXT
         )
         """
-    ])
+        ]
+    )
     with dag:
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
@@ -67,7 +76,6 @@ def test_source_file_to_database(dag, sa_session, tmp_path, sqlite_connection, l
     # 0  1  2  3  2023-10-01 00:00:00.000000  2023-09-30T00:00:00+00:00  2023-10-01T00:00:00+00:00  2024-10-25T12:54:13.211896+02:00  /tmp/.../test.csv
     # 1  4  5  6  2023-10-01 00:00:00.000000  2023-09-30T00:00:00+00:00  2023-10-01T00:00:00+00:00  2024-10-25T12:54:13.211896+02:00  /tmp/.../test.csv
     # 2  7  8  9  2023-10-01 00:00:00.000000  2023-09-30T00:00:00+00:00  2023-10-01T00:00:00+00:00  2024-10-25T12:54:13.211896+02:00  /tmp/.../test.csv
-    
 
     assert len(df) == 3
     assert str(df.iloc[0]["_DS"]) == execution_date.to_datetime_string()
@@ -83,7 +91,9 @@ def test_source_file_to_database(dag, sa_session, tmp_path, sqlite_connection, l
     )
 
 
-def test_source_file_with_less_columns_that_database(dag, sa_session, sqlite_connection, local_fs_connection):
+def test_source_file_with_less_columns_that_database(
+    dag, sa_session, sqlite_connection, local_fs_connection
+):
     """
     Check behavior when source file has less columns than the database table.
     Example:
@@ -95,7 +105,9 @@ def test_source_file_with_less_columns_that_database(dag, sa_session, sqlite_con
     """
 
     exec_date = pendulum.datetime(2023, 10, 1)
-    folder = _write_csv_for_ds(Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date)
+    folder = _write_csv_for_ds(
+        Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
+    )
 
     sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
     sqlite_hook.run(
@@ -134,7 +146,10 @@ def test_source_file_with_less_columns_that_database(dag, sa_session, sqlite_con
     assert df.iloc[0].d == 0
     assert all([np.isnan(i) for i in [df.iloc[1].d, df.iloc[2].d, df.iloc[3].d]])
 
-def test_source_file_with_more_columns_than_database(dag, sa_session, sqlite_connection, local_fs_connection):
+
+def test_source_file_with_more_columns_than_database(
+    dag, sa_session, sqlite_connection, local_fs_connection
+):
     """
     Check behavior when source file has more columns than the database table.
     Example:
@@ -146,7 +161,9 @@ def test_source_file_with_more_columns_than_database(dag, sa_session, sqlite_con
     """
 
     exec_date = pendulum.datetime(2023, 10, 1)
-    folder = _write_csv_for_ds(Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date)
+    folder = _write_csv_for_ds(
+        Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
+    )
 
     sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
     sqlite_hook.run(
@@ -169,7 +186,9 @@ def test_source_file_with_more_columns_than_database(dag, sa_session, sqlite_con
 
     dag.test(execution_date=exec_date, session=sa_session)
 
-    df = sqlite_hook.get_pandas_df(sql="SELECT * FROM test_csv_with_more_columns_than_database")
+    df = sqlite_hook.get_pandas_df(
+        sql="SELECT * FROM test_csv_with_more_columns_than_database"
+    )
 
     # Expected result
     #    a  b                         _DS    c
@@ -183,7 +202,9 @@ def test_source_file_with_more_columns_than_database(dag, sa_session, sqlite_con
     assert np.isnan(df.iloc[0].c)
 
 
-def test_source_file_and_database_with_different_columns(dag, sa_session, sqlite_connection, local_fs_connection):
+def test_source_file_and_database_with_different_columns(
+    dag, sa_session, sqlite_connection, local_fs_connection
+):
     """
     Check behavior when source file has columns not present in the database and the source
     file has columns not present in source file.
@@ -195,7 +216,9 @@ def test_source_file_and_database_with_different_columns(dag, sa_session, sqlite
     not defined in the source file.
     """
     exec_date = pendulum.datetime(2023, 10, 1)
-    folder = _write_csv_for_ds(Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date)
+    folder = _write_csv_for_ds(
+        Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
+    )
 
     sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
     sqlite_hook.run(
@@ -218,7 +241,9 @@ def test_source_file_and_database_with_different_columns(dag, sa_session, sqlite
 
     dag.test(execution_date=exec_date, session=sa_session)
 
-    df = sqlite_hook.get_pandas_df(sql="SELECT * FROM test_csv_with_more_columns_than_database")
+    df = sqlite_hook.get_pandas_df(
+        sql="SELECT * FROM test_csv_with_more_columns_than_database"
+    )
 
     # Expected result
     #    a    d                         _DS    c    b
