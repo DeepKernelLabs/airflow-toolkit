@@ -1,71 +1,99 @@
 import logging
+import os
 import subprocess
-import venv
+from pathlib import Path
 
 import pytest
+import virtualenv
 
 logger = logging.getLogger(__file__)
 
-#TODO: debug why ERROR tests/integration/test_library_installation.py::test_import_package - SystemExit: 1
-
+@pytest.fixture
+def project_path():
+    return Path(__file__).resolve().parents[2]  # Adjust if needed
 
 @pytest.fixture
 def virtual_environment(tmp_path):
-    """Fixture to create a virtual environment, yield its path. Clean up is performed by the tmp_path fixture."""
-    tmpdir = tmp_path / "venv"
-    tmpdir.mkdir()
-    builder = venv.EnvBuilder(with_pip=True, system_site_packages=False)
-    builder.create(tmpdir)
-    logger.info(f"Created temporary virtualenv in {tmpdir}")
-
-    yield tmpdir
+    """Create a temp virtualenv and yield its path."""
+    venv_dir = tmp_path / "venv"
+    virtualenv.cli_run([str(venv_dir)])
+    logger.info(f"Created temp virtualenv at {venv_dir}")
+    yield venv_dir
 
 
-def install_package(venv_path: str, package: str, cwd: str):
-    """Install the package in the virtual environment."""
-    subprocess.check_call([f"{venv_path}/bin/pip", "install", package], cwd=cwd)
+def install_package(venv_path: Path, package: str, cwd: Path):
+    """Install the given package using `uv` inside the given virtualenv."""
+    python_bin = venv_path / "bin" / "python"
+    subprocess.check_call(["uv", "pip", "install", "--python", f"{venv_path}/bin/python", package], cwd=cwd)
 
 
-def test_import_package(virtual_environment, project_path):
-    """Test package import in the provided virtual environment."""
+def make_env(venv_path: Path, airflow_home: Path) -> dict:
+    env = os.environ.copy()
+    env["PATH"] = f"{venv_path}/bin:" + env["PATH"]
+    env["VIRTUAL_ENV"] = str(venv_path)
+    env["AIRFLOW_HOME"] = str(airflow_home)
+    env["AIRFLOW__CORE__EXECUTOR"] = "SequentialExecutor"
+    env["AIRFLOW__DATABASE__SQL_ALCHEMY_CONN"] = f"sqlite:///{airflow_home}/airflow.db"
+
+    # Optionally bring over connection environment variables from GitHub Actions
+    for var in [
+        "AIRFLOW_CONN_DATA_LAKE_TEST",
+        "AIRFLOW_CONN_SFTP_TEST",
+        "AIRFLOW_CONN_GCP_DATA_LAKE_TEST",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_DEFAULT_REGION",
+        "TEST_BUCKET",
+        "S3_ENDPOINT_URL",
+    ]:
+        if var in os.environ:
+            env[var] = os.environ[var]
+
+    return env
+
+
+def test_import_package(virtual_environment, project_path, tmp_path):
     venv_path = virtual_environment
-    for package in [str(project_path)]:
-        install_package(venv_path, package, cwd=str(project_path))
+    airflow_home = tmp_path / "af_home"
+    airflow_home.mkdir(exist_ok=True)
+    env = make_env(venv_path, airflow_home)
 
-    # Test importing the package
-    try:
-        result = subprocess.check_output(
-            [
-                f"{venv_path}/bin/python",
-                "-c",
-                "from airflow.utils.entry_points import entry_points_with_dist; print(list(entry_points_with_dist('apache_airflow_provider')))",
-            ],
+    # Install the project
+    install_package(venv_path, str(project_path), cwd=project_path)
+
+    # Run import and provider checks inside the temp venv
+    def run_python(code: str) -> str:
+        return subprocess.check_output(
+            [f"{venv_path}/bin/python", "-c", code],
+            env=env,
             universal_newlines=True,
             stderr=subprocess.STDOUT,
+        )
+
+    try:
+        # Entry point check
+        result = run_python(
+            "from airflow.utils.entry_points import entry_points_with_dist; "
+            "print(list(entry_points_with_dist('apache_airflow_provider')))"
         )
         assert "airflow_toolkit.providers.package:get_provider_info" in result
-        result = subprocess.check_output(
-            [
-                f"{venv_path}/bin/python",
-                "-c",
-                "from airflow.providers_manager import ProvidersManager; pm = ProvidersManager(); print(pm.providers['airflow-toolkit'].data['package-name'])",
-            ],
-            universal_newlines=True,
-            stderr=subprocess.STDOUT,
+
+        # ProvidersManager check
+        result = run_python(
+            "from airflow.providers_manager import ProvidersManager; "
+            "pm = ProvidersManager(); "
+            "print(pm.providers['airflow-toolkit'].data['package-name'])"
         )
         assert "airflow-toolkit" in result
-        result = subprocess.check_output(
-            [
-                f"{venv_path}/bin/python",
-                "-c",
-                "from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import HttpToFilesystem; print('Import Ok')",
-            ],
-            universal_newlines=True,
-            stderr=subprocess.STDOUT,
+
+        # Import a real operator
+        result = run_python(
+            "from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import HttpToFilesystem; "
+            "print('Import Ok')"
         )
         assert "Import Ok" in result
 
-        # TODO: When we have custom hooks, check their installation is correct by using airflow.providers_manager.ProvidersManager.hooks
     except subprocess.CalledProcessError as e:
         logger.exception(e)
-        pytest.fail(f"Failed to import the package in a clean environment: {e.output}")
+        pytest.fail(f"Failed to import or register the package in clean env: {e.output}")
+
