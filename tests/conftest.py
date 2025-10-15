@@ -118,16 +118,20 @@ def s3_resource():
 @pytest.fixture
 def s3_client():
     endpoint_url = os.environ["S3_ENDPOINT_URL"]
+    s3_config = {
+        "addressing_style": "path",
+        "use_expect_header": False,
+    }
     return boto3.client(
         "s3",
         endpoint_url=endpoint_url,
-        config=Config(s3={"addressing_style": "path", "use_expect_header": False}),
+        config=Config(s3=s3_config),
     )
     # return boto3.client('s3', endpoint_url=endpoint_url)
 
 
 @pytest.fixture
-def local_fs_conn_params(tmp_path):
+def local_fs_conn_params(tmp_path: Path) -> dict[str, str | dict[str, str]]:
     return {
         "conn_type": "fs",
         "extra": {
@@ -138,14 +142,14 @@ def local_fs_conn_params(tmp_path):
 
 # -----
 @pytest.fixture
-def sqlite_database(tmp_path: Path):
+def sqlite_database(tmp_path: Path) -> Path:
     db = tmp_path / "test_db.sqlite"
     db.touch()
     return db
 
 
 @pytest.fixture
-def sqlite_connection(sqlite_database: Path):
+def sqlite_connection(sqlite_database: Path) -> str:
     abs_path = sqlite_database.resolve().as_posix()
     with create_session() as session:
         existing = (
@@ -168,7 +172,7 @@ def sqlite_connection(sqlite_database: Path):
 
 
 @pytest.fixture
-def local_fs_connection(tmp_path: Path):
+def local_fs_connection(tmp_path: Path) -> Path:
     """Ensure conn_id=local_fs_test exists and points to <tmp>/data_lake."""
     dl_root = tmp_path / "data_lake"
     dl_root.mkdir(parents=True, exist_ok=True)
