@@ -1,8 +1,11 @@
 import logging
 import sys
+from collections.abc import Sequence
+from typing import Any
 
 from airflow.hooks.base import BaseHook
 from airflow.models import BaseOperator
+from airflow.utils.context import Context
 from deltalake import write_deltalake
 from duckdb_provider.hooks.duckdb_hook import DuckDBHook
 
@@ -23,22 +26,22 @@ class DuckdbToDeltalakeOperator(BaseOperator):
         delta_lake_conn_id: str,
         source_query: str,
         table_path: str,
-        extensions: list[str] = None,
+        extensions: Sequence[str] | None = None,
         rows_per_batch: int = 1000000,
         write_mode: Literal["error", "append", "overwrite", "ignore"] = "append",
         *args,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.duckdb_conn_id = duckdb_conn_id
         self.delta_lake_conn_id = delta_lake_conn_id
         self.source_query = source_query
         self.table_path = table_path
-        self.extensions = extensions
+        self.extensions = list(extensions) if extensions is not None else []
         self.rows_per_batch = rows_per_batch
         self.write_mode = write_mode
 
-    def execute(self, context):
+    def execute(self, context: Context) -> None:
         logger.info("Create conn for duckdb")
         duckdb_conn = DuckDBHook.get_hook(self.duckdb_conn_id).get_conn()
 

@@ -47,7 +47,7 @@ class SQLToFilesystem(BaseOperator):
         self.destination_path = destination_path
         self.batch_size = batch_size
         self.create_file_on_success = create_file_on_success
-        self.files = []
+        self.files: list[str] = []
 
     def execute(self, context):
         source_sql_hook: DbApiHook = BaseHook.get_connection(
@@ -106,7 +106,7 @@ class FilesystemToFilesystem(BaseOperator):
         self.data_transformation = data_transformation
         self.create_file_on_success = create_file_on_success
 
-    def execute(self, context):
+    def execute(self, context: "Context") -> None:
         source_fs_hook = FilesystemFactory.get_data_lake_filesystem(
             connection=BaseHook.get_connection(self.source_fs_conn_id),
         )

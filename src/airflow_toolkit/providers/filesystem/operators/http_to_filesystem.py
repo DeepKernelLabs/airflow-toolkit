@@ -4,7 +4,16 @@ import json
 import logging
 import uuid
 from io import BytesIO, StringIO
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Protocol, Type
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generator,
+    Literal,
+    Optional,
+    Protocol,
+    Type,
+)
 
 try:
     from typing import TypedDict  # Python 3.11+
@@ -36,13 +45,15 @@ SaveFormat = Literal["jsonl"]
 
 
 class Transformation(Protocol):
-    def __call__(self, data: bytes, **kwargs) -> bytes: ...
+    def __call__(
+        self, data: Any, *args: Any, **kwargs: Any
+    ) -> BytesIO | bytes | str: ...
 
 
 class HttpBatchOperator(HttpOperator):
     def execute(
         self, context: Context, use_new_data_parameters_on_pagination=False
-    ) -> Any:
+    ) -> Generator[Any, None, None]:
         self.log.info("Calling HTTP method")
 
         response = self.hook.run(
@@ -57,9 +68,9 @@ class HttpBatchOperator(HttpOperator):
 
     def paginate_sync(
         self, response: Response, use_new_data_parameters_on_pagination=False
-    ) -> Response | list[Response]:
+    ) -> Generator[Response, None, None]:
         if not self.pagination_function:
-            return None
+            return
 
         while True:
             next_page_params = self.pagination_function(response)
@@ -71,7 +82,7 @@ class HttpBatchOperator(HttpOperator):
                 )
             )
             yield response
-        return None
+        return
 
     def _merge_next_page_parameters(
         self, next_page_params: dict, use_new_data_parameters_on_pagination=False
@@ -130,7 +141,7 @@ class HttpToFilesystem(BaseOperator):
         filesystem_conn_id: str,
         filesystem_path: str,
         save_format: SaveFormat = "jsonl",
-        source_format: SaveFormat = None,
+        source_format: SaveFormat | None = None,
         compression: CompressionOptions = None,
         endpoint: str | None = None,
         method: str = "POST",
@@ -144,7 +155,7 @@ class HttpToFilesystem(BaseOperator):
         data_transformation: Optional[Transformation] = None,
         data_transformation_kwargs: dict[str, Any] | None = None,
         file_number_start: int = 1,
-        strict_response_schema=True,
+        strict_response_schema: bool = True,
         *args,
         **kwargs,
     ):
@@ -165,7 +176,9 @@ class HttpToFilesystem(BaseOperator):
         )
         self.create_file_on_success = create_file_on_success
         self.data_transformation = data_transformation
-        self.data_transformation_kwargs = data_transformation_kwargs
+        self.data_transformation_kwargs = (
+            dict(data_transformation_kwargs) if data_transformation_kwargs else {}
+        )
 
         self.save_format = save_format
         self.source_format = source_format if source_format else save_format
@@ -266,9 +279,13 @@ class HttpToFilesystem(BaseOperator):
 
         # Check if we have a custom data transformation
         if self.data_transformation and self.data_transformation_kwargs:
-            return self.data_transformation(data, self.data_transformation_kwargs)
+            transformed = self.data_transformation(
+                data, self.data_transformation_kwargs
+            )
+            return self._ensure_bytesio(transformed)
         elif self.data_transformation:
-            return self.data_transformation(data)
+            transformed = self.data_transformation(data)
+            return self._ensure_bytesio(transformed)
 
         # If we don't have a custom data transformation, use the default one based on the source_format
 
@@ -285,14 +302,14 @@ class HttpToFilesystem(BaseOperator):
                     logging.warning(
                         "Expected response can't be transformed to jsonl. It is not  list[dict]"
                     )
-                    return None
+                    return BytesIO()
                 return list_to_jsonl(data, self.compression)
 
             case "xml":
                 return xml_to_binary(data, self.compression)
 
             case "parquet":
-                return data
+                return self._ensure_bytesio(data)
 
             case "csv":
                 return csv_to_binary(data, self.compression)
@@ -301,6 +318,18 @@ class HttpToFilesystem(BaseOperator):
                 raise NotImplementedError(
                     f"Unknown source_format/save_format: {self.source_format}"
                 )
+
+    def _ensure_bytesio(self, value: BytesIO | bytes | str) -> BytesIO:
+        """
+        Ensure the transformation output is a BytesIO object.
+        """
+        if isinstance(value, BytesIO):
+            return value
+        if isinstance(value, bytes):
+            return BytesIO(value)
+        if isinstance(value, str):
+            return BytesIO(value.encode())
+        raise TypeError(f"Unsupported transformation output type: {type(value)!r}")
 
 
 class RequestSpec(TypedDict, total=False):

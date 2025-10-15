@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 import io
 import logging
 import sys
-import typing
-from sqlalchemy.engine import URL
+from collections.abc import Mapping
+from typing import Any
 
 import pandas as pd
 from airflow.hooks.base import BaseHook
-from airflow.models import BaseOperator
+from airflow.models.connection import Connection
+from airflow.utils.context import Context
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -14,21 +17,25 @@ from sqlalchemy import (
     Integer,
     String,
     create_engine,
-    engine,
     inspect,
+    text,
 )
+from sqlalchemy.engine import Engine, URL
 
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
+from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
 
 if sys.version_info < (3, 8):
     from typing import Literal
 else:
     from typing_extensions import Literal
 
+from airflow.models import BaseOperator
+
 logger = logging.getLogger(__name__)
 
 
-type_mapping = {
+type_mapping: dict[str, type[Any]] = {
     "int64": Integer,
     "int": Integer,
     "integer": Integer,
@@ -63,17 +70,15 @@ class FilesystemToDatabaseOperator(BaseOperator):
         database_conn_id: str,
         filesystem_path: str,
         db_table: str,
-        db_schema: typing.Optional[str] = None,
-        source_format: typing.Optional[Literal["csv", "json", "parquet"]] = "csv",
-        source_format_options: typing.Optional[typing.Dict] = None,
-        table_aggregation_type: typing.Optional[
-            Literal["append", "fail", "replace"]
-        ] = "append",
-        metadata: typing.Optional[typing.Dict[str, str]] = None,
+        db_schema: str | None = None,
+        source_format: Literal["csv", "json", "parquet"] = "csv",
+        source_format_options: Mapping[str, Any] | None = None,
+        table_aggregation_type: Literal["append", "fail", "replace"] = "append",
+        metadata: Mapping[str, str] | None = None,
         metadata_columns_in_uppercase: bool = True,
         include_source_path: bool = True,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
 
@@ -83,21 +88,25 @@ class FilesystemToDatabaseOperator(BaseOperator):
         self.db_table = db_table
         self.db_schema = db_schema
         self.source_format = source_format
-        self.source_format_options = source_format_options
+        self.source_format_options: dict[str, Any] = (
+            dict(source_format_options) if source_format_options is not None else {}
+        )
         self.table_aggregation_type = table_aggregation_type
-        self.metadata = metadata or {"_DS": "{{ ds }}"}
+        self.metadata: dict[str, str] = (
+            dict(metadata) if metadata is not None else {"_DS": "{{ ds }}"}
+        )
         self.metadata_columns_in_uppercase = metadata_columns_in_uppercase
         self.include_source_path = include_source_path
 
-    def execute(self, context):
+    def execute(self, context: Context) -> None:
         logger.info(f"Create connection for filesystem ({self.filesystem_conn_id})")
-        filesystem = FilesystemFactory.get_data_lake_filesystem(
+        filesystem: FilesystemProtocol = FilesystemFactory.get_data_lake_filesystem(
             connection=BaseHook.get_connection(self.filesystem_conn_id),
         )
         logger.info(
             f"Create SQLAlchemy engine with connection_id {self.database_conn_id}"
         )
-        conn = BaseHook.get_connection(self.database_conn_id)
+        conn: Connection = BaseHook.get_connection(self.database_conn_id)
 
         if conn.conn_type == "sqlite":
             # In your fixture, the DB path is stored in `host`
@@ -116,7 +125,7 @@ class FilesystemToDatabaseOperator(BaseOperator):
                 database=conn.schema,
             )
 
-        engine = create_engine(url)
+        engine: Engine = create_engine(url)
 
         # TODO: check prefix argument in filesystem.list_files
         for blob_path in filesystem.list_files(""):
@@ -144,13 +153,15 @@ class FilesystemToDatabaseOperator(BaseOperator):
             self._check_and_fix_column_differences(df, self.db_table, engine)
 
             for key, value in self.metadata.items():
-                key = key.upper() if self.metadata_columns_in_uppercase else key.lower()
+                metadata_key = (
+                    key.upper() if self.metadata_columns_in_uppercase else key.lower()
+                )
 
-                df[key] = value
+                df[metadata_key] = value
 
-                if key.startswith("_"):
+                if metadata_key.startswith("_"):
                     # _* fields are treated as metadata and we try to convert them in datetimes
-                    df[key] = self._convert_to_datetime(df[key])
+                    df[metadata_key] = self._convert_to_datetime(df[metadata_key])
 
             if self.include_source_path:
                 source_path_column = (
@@ -170,8 +181,8 @@ class FilesystemToDatabaseOperator(BaseOperator):
             )
 
     def _check_and_fix_column_differences(
-        self, df: pd.DataFrame, table_name: str, engine: engine.Engine
-    ):
+        self, df: pd.DataFrame, table_name: str, engine: Engine
+    ) -> None:
         """
         This method checks if the columns in the dataframe are the same as the
         ones in the database table. If they are not, it adds the missing
@@ -186,13 +197,11 @@ class FilesystemToDatabaseOperator(BaseOperator):
 
         if table_name in inspector.get_table_names():
             source_file_columns = set(df.columns.tolist())
-            table_columns = set(
-                [
-                    col["name"]
-                    for col in inspector.get_columns(self.db_table)
-                    if col["name"] not in self.metadata
-                ]
-            )
+            table_columns = {
+                col["name"]
+                for col in inspector.get_columns(self.db_table)
+                if col["name"] not in self.metadata
+            }
 
             # Column in source file but not present in db table
             only_csv_columns = source_file_columns - table_columns
@@ -202,9 +211,12 @@ class FilesystemToDatabaseOperator(BaseOperator):
                         f'Table "{table_name}" does not have column "{column}" present in the source file, '
                         f'column "{column}" will be filled with null values.'
                     )
-                    sqlalchemy_type = type_mapping.get(df.dtypes.get(column), String)
+                    dtype_name = str(df.dtypes.get(column, ""))
+                    sqlalchemy_type = type_mapping.get(dtype_name, String)
                     conn.execute(
-                        f'ALTER TABLE {table_name} ADD COLUMN "{column}" {sqlalchemy_type.__name__}'
+                        text(
+                            f'ALTER TABLE {table_name} ADD COLUMN "{column}" {sqlalchemy_type.__name__}'
+                        )
                     )
 
             # Column in db table but not present in the source file
@@ -217,14 +229,16 @@ class FilesystemToDatabaseOperator(BaseOperator):
                 df[column] = None
 
     @staticmethod
-    def _convert_to_datetime(value):
+    def _convert_to_datetime(value: pd.Series) -> pd.Series:
         try:
             return pd.to_datetime(value)
-        except ValueError:
+        except (ValueError, TypeError):
             return value
 
-    def raw_content_to_pandas(self, path_or_buf: typing.Union[str, bytes, io.StringIO]):
-        options = self.source_format_options or {}
+    def raw_content_to_pandas(
+        self, path_or_buf: str | bytes | io.StringIO | io.BytesIO
+    ) -> pd.DataFrame:
+        options: dict[str, Any] = dict(self.source_format_options)
 
         match self.source_format:
             case "csv":
