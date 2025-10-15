@@ -11,15 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install uv
+      - name: Install uv and Python
         uses: astral-sh/setup-uv@v6
         with:
+          version: "0.8.18"
+          python-version: "3.11"
           enable-cache: true
+
+      - name: Sync project dependencies
+        run: uv sync --locked --dev
 
       # For local test publish with act
       # - name: Install uv manually (for act)
@@ -28,13 +28,17 @@ jobs:
       #     echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Install build + twine
-        run: uv pip install --python .venv/bin/python build twine
+        run: |
+          uv pip install --python .venv/bin/python build twine
 
       - name: Lint (optional, for consistency)
         run: uv run pre-commit run --all-files
 
       - name: Build package
-        run: python -m build
+        run: uv run python -m build
+
+      - name: Twine check
+        run: uv run python -m twine check dist/*
 
       #Local test publish with act
       # - name: Publish to PyPI
