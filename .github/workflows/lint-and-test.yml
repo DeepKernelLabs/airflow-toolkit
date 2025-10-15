@@ -26,7 +26,7 @@ jobs:
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=src" >> $GITHUB_ENV
-      
+
       # - name: Install uv manually
       #   run: |
       #     curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -36,18 +36,8 @@ jobs:
       - name: Install dependencies (uv)
         run: uv sync --locked --dev
 
-      - name: Install missing stubs
-        run: uv pip install types-requests types-jmespath types-toml pandas-stubs types-pytz types-s3transfer types-awscrt
-
-      - name: Ruff check
-        run: uv run ruff check --fix -e --no-cache
-
-      - uses: reviewdog/action-suggester@v1
-        with:
-          tool_name: ruff
-
-      - name: Mypy check
-        run: uv run mypy .
+      - name: Run pre-commit (ruff + mypy)
+        run: uv run pre-commit run --all-files
 
   test:
     runs-on: ubuntu-24.04
@@ -79,7 +69,7 @@ jobs:
       #     curl -LsSf https://astral.sh/uv/install.sh | sh
       #     export PATH="$HOME/.local/bin:$PATH"
       #     uv --version
-      
+
       - name: Install uv and Python
         uses: astral-sh/setup-uv@v6
         with:
@@ -99,7 +89,7 @@ jobs:
       - name: Start SFTP server
         # run: docker start test-sftp
         run: docker run -p 2222:22 -d atmoz/sftp test_user:pass:::root_folder
-      
+
       - name: Run tests with pytest
         run: >
           uv run pytest  --tb=short tests/
