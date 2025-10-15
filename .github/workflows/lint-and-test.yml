@@ -42,9 +42,9 @@ jobs:
       - name: Ruff check
         run: uv run ruff check --fix -e --no-cache
 
-      # - uses: reviewdog/action-suggester@v1
-      #   with:
-      #     tool_name: ruff
+      - uses: reviewdog/action-suggester@v1
+        with:
+          tool_name: ruff
 
       - name: Mypy check
         run: uv run mypy .
@@ -97,9 +97,9 @@ jobs:
         run: docker run -d --name test-s3mock --rm -p 9090:9090 -e initialBuckets=data_lake -e debug=true -t adobe/s3mock
 
       - name: Start SFTP server
-        run: docker start test-sftp
-        # run: docker run -p 2222:22 -d atmoz/sftp test_user:pass:::root_folder
-
+        # run: docker start test-sftp
+        run: docker run -p 2222:22 -d atmoz/sftp test_user:pass:::root_folder
+      
       - name: Run tests with pytest
         run: >
           uv run pytest  --tb=short tests/
