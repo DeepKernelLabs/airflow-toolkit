@@ -14,7 +14,7 @@ def branch_filesystem_check_task(
     filesystem_path: str,
     main_branch: str,
     alternative_branch: str,
-) -> bool:
+) -> str:
     filesystem_protocol = FilesystemFactory.get_data_lake_filesystem(
         connection=BaseHook.get_connection(filesystem_conn_id),
     )

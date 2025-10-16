@@ -1,3 +1,4 @@
+from typing import Any
 from airflow.hooks.base import BaseHook
 from airflow.sensors.base import BaseSensorOperator
 from airflow.utils.context import Context
@@ -29,12 +30,18 @@ class FilesystemFileSensor(BaseSensorOperator):
 
     template_fields = ("source_path",)
 
-    def __init__(self, filesystem_conn_id: str, source_path: str, *args, **kwargs):
+    def __init__(
+        self,
+        filesystem_conn_id: str,
+        source_path: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.source_path = source_path
         self.filesystem_conn_id = filesystem_conn_id
 
-    def poke(self, context: Context):
+    def poke(self, context: Context) -> bool:
         """
         Check if the file exists in the specified storage.
         """
