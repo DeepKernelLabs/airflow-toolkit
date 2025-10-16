@@ -5,36 +5,53 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-    build:
-        runs-on: ubuntu-24.04
-        steps:
-        - uses: actions/checkout@v4
-        - name: Set up Python
-          uses: actions/setup-python@v4
-          with:
-            python-version: '3.11'
-        - name: Install Poetry
-          run: |
-            curl -sSL https://install.python-poetry.org | python3 -
-        - name: Configure Poetry
-          run: |
-            poetry config virtualenvs.create true
-            poetry config virtualenvs.in-project false
-        - uses: chartboost/ruff-action@v1
-          with:
-            args: check --fix -e --no-cache
-        - name: Set up cache
-          uses: actions/cache@v4
-          with:
-            path: ~/.cache/pypoetry/virtualenvs
-            key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-            restore-keys: |
-                ${{ runner.os }}-poetry-
-        - name: Build
-          run: |
-            poetry build
-        - name: Publish to Pypi
-          env:
-            PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-          run: |
-            poetry publish -u __token__ -p ${PYPI_TOKEN}
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.18"
+          python-version: "3.11"
+          enable-cache: true
+
+      - name: Sync project dependencies
+        run: uv sync --locked --dev
+
+      # For local test publish with act
+      # - name: Install uv manually (for act)
+      #   run: |
+      #     curl -LsSf https://astral.sh/uv/install.sh | sh
+      #     echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install build + twine
+        run: |
+          uv pip install --python .venv/bin/python build twine
+
+      - name: Lint (optional, for consistency)
+        run: uv run pre-commit run --all-files
+
+      - name: Build package
+        run: uv run python -m build
+
+      - name: Twine check
+        run: uv run python -m twine check dist/*
+
+      #Local test publish with act
+      # - name: Publish to PyPI
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      #   run: |
+      #     .venv/bin/twine upload dist/*
+
+      - name: Publish to PyPI
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          twine upload dist/*

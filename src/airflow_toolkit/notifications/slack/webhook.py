@@ -18,7 +18,7 @@ class Source:
 
 
 def _get_message_blocks(
-    text: str, image_url: str, source: str
+    text: str, image_url: str | None, source: str
 ) -> list[dict[str, typing.Any]]:
     base_url = conf.get("webserver", "BASE_URL")
     dag_execution_logs_url = (
@@ -35,7 +35,7 @@ def _get_message_blocks(
         case _:
             failed_tasks = '"unknown source"'
 
-    blocks = [
+    blocks: list[dict[str, typing.Any]] = [
         {
             "type": "section",
             "text": {
@@ -83,7 +83,7 @@ def dag_failure_slack_notification_webhook(
     text: str = "",
     blocks: typing.List[dict[str, typing.Any]] | None = None,
     include_blocks: bool = True,
-    source: typing.Literal["DAG", "TASK"] = Source.DAG,
+    source: typing.Literal["DAG", "TASK"] = "DAG",
     image_url: str | None = SLACK_NOTIFICATION_IMG_URL,
 ) -> typing.Callable:
     """

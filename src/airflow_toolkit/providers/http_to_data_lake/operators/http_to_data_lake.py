@@ -1,6 +1,6 @@
 import json
 from io import BytesIO, StringIO
-from typing import TYPE_CHECKING, Any, Callable, Literal
+from typing import TYPE_CHECKING, Any, Callable, Generator, Literal
 
 import jmespath
 import pandas as pd
@@ -33,7 +33,7 @@ SaveFormat = Literal["jsonl"]
 class HttpBatchOperator(HttpOperator):
     def execute(
         self, context: Context, use_new_data_parameters_on_pagination=False
-    ) -> Any:
+    ) -> Generator[Any, None, None]:
         self.log.info("Calling HTTP method")
         response = self.hook.run(
             self.endpoint, self.data, self.headers, self.extra_options
@@ -47,9 +47,9 @@ class HttpBatchOperator(HttpOperator):
 
     def paginate_sync(
         self, response: Response, use_new_data_parameters_on_pagination: bool = False
-    ) -> Response | list[Response]:
+    ) -> Generator[Response, None, None]:
         if not self.pagination_function:
-            return None
+            return
 
         while True:
             next_page_params = self.pagination_function(response)
@@ -61,7 +61,7 @@ class HttpBatchOperator(HttpOperator):
                 )
             )
             yield response
-        return None
+        return
 
     def _merge_next_page_parameters(
         self, next_page_params: dict, use_new_data_parameters_on_pagination=False
