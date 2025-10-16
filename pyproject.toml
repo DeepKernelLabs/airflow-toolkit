@@ -3,16 +3,9 @@ name = "airflow-toolkit"
 version = "0.13.3"
 description = ""
 authors = [{ name = "Biel Llobera", email = "biel_llobera@dkl.digital" }]
-requires-python = ">=3.9,<3.12"
+requires-python = ">=3.10,<3.12"
 readme = "README.md"
 dependencies = [
-    "airflow-provider-duckdb>=0.2.0,<0.3",
-    "apache-airflow>=2.8.0,<3",
-    "apache-airflow-providers-amazon>=9.0.0,<10",
-    "apache-airflow-providers-google>=10.23.0,<11",
-    "apache-airflow-providers-microsoft-azure>=8.0.0,<9",
-    "apache-airflow-providers-sftp>=4.8.1,<5",
-    "apache-airflow-providers-slack>=8.5.1,<9",
     "boto3>=1.34.8,<2",
     "databricks-sdk>=0.21.0,<0.22",
     "databricks-sql-connector>=2",
@@ -21,12 +14,11 @@ dependencies = [
     "jmespath>=1.0.1,<2",
     "pandas>=2.1.1,<3",
     "pendulum>=2.1.2,<3",
-    "sqlalchemy==1.4.54",
-    "toml>=0.10.2,<0.11",
     "paramiko<4.0.0",
     "ipykernel>=6.30.1",
     "flask_limiter>=3.0,<4,!=3.13",
     "virtualenv>=20.35.3",
+    "toml>=0.10.2,<0.11",
 ]
 
 [tool.pytest.ini_options]
@@ -34,6 +26,31 @@ pythonpath = ["src"]
 
 [project.entry-points.apache_airflow_provider]
 provider_info = "airflow_toolkit.providers.package:get_provider_info"
+
+[project.optional-dependencies]
+airflow2 = [
+    "apache-airflow>=2.8.0,<3",
+    "apache-airflow-providers-amazon>=9,<10",
+    "apache-airflow-providers-google>=10.23,<11",
+    "apache-airflow-providers-microsoft-azure>=8,<9",
+    "apache-airflow-providers-sftp>=4,<5",
+    "apache-airflow-providers-slack>=8,<9",
+    "apache-airflow-providers-http>=4,<5",
+    "airflow-provider-duckdb>=0.2,<0.3",
+    "sqlalchemy==1.4.54",
+]
+airflow3 = [
+  "apache-airflow>=3,<4",
+  "apache-airflow-providers-amazon>=9",
+  "apache-airflow-providers-google>=10.23",
+  "apache-airflow-providers-microsoft-azure>=8",
+  "apache-airflow-providers-sftp>=4",
+  "apache-airflow-providers-slack>=8",
+  "apache-airflow-providers-http>=4",
+  "apache-airflow-providers-common-sql>=1",
+  "airflow-provider-duckdb>=0.2",
+  "sqlalchemy>=1.4.49,<2",
+]
 
 [dependency-groups]
 dev = [
@@ -59,6 +76,10 @@ test = [
 ]
 
 [tool.uv]
+conflicts = [
+  [{ extra = "airflow2" }, { extra = "airflow3" }],
+]
+
 default-groups = [
     "dev",
     "test",
