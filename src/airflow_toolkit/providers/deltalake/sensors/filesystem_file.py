@@ -1,8 +1,6 @@
 from typing import Any
-from airflow.hooks.base import BaseHook
-from airflow.sensors.base import BaseSensorOperator
-from airflow.utils.context import Context
 
+from airflow_toolkit._compact.airflow_shim import BaseHook, BaseSensorOperator, Context
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
 
 

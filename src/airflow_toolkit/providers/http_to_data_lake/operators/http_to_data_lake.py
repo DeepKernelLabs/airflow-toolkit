@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, Literal
 
 import jmespath
 import pandas as pd
-from airflow.hooks.base import BaseHook
-from airflow.models import BaseOperator
+
+from airflow_toolkit._compact.airflow_shim import BaseHook, BaseOperator, Context
 
 try:
     from airflow.providers.http.operators.http import HttpOperator
@@ -14,7 +14,6 @@ except ImportError:
 
 import logging
 
-from airflow.utils.context import Context
 from airflow.utils.helpers import merge_dicts
 from requests import Response
 

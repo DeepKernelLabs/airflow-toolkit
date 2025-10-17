@@ -1,14 +1,13 @@
 from io import BytesIO
 from typing import TYPE_CHECKING, Optional, Protocol
 
-from airflow.hooks.base import BaseHook
-from airflow.models import BaseOperator
 from airflow.providers.common.sql.hooks.sql import DbApiHook
 
+from airflow_toolkit._compact.airflow_shim import BaseHook, BaseOperator
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
 
 if TYPE_CHECKING:
-    from airflow.utils.context import Context
+    from airflow_toolkit._compact.airflow_shim import Context
 
 import logging
 

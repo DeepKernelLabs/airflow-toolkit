@@ -22,18 +22,16 @@ except ImportError:
 
 import jmespath
 import pandas as pd
-from airflow.hooks.base import BaseHook
-from airflow.models import BaseOperator
 
 try:
     from airflow.providers.http.operators.http import HttpOperator
 except ImportError:
     from airflow.providers.http.operators.http import SimpleHttpOperator as HttpOperator
 
-from airflow.utils.context import Context
 from airflow.utils.helpers import merge_dicts
 from requests import Response
 
+from airflow_toolkit._compact.airflow_shim import BaseHook, BaseOperator, Context
 from airflow_toolkit.compression_utils import CompressionOptions, compress
 from airflow_toolkit.exceptions import ApiResponseTypeError
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory

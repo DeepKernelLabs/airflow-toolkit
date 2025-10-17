@@ -1,11 +1,11 @@
 from functools import cached_property
 
-from airflow.hooks.base import BaseHook
-from airflow.models import Connection
 from airflow.providers.common.sql.hooks.sql import DbApiHook
 from databricks import sql
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config, oauth_service_principal
+
+from airflow_toolkit._compact.airflow_shim import BaseHook, Connection
 
 
 class AzureDatabricksSqlHook(DbApiHook):

@@ -24,34 +24,31 @@ def _af_major() -> int:
 
 _M = _af_major()
 
-# BaseOperator
 if _M >= 3:
+    from airflow.operators.python import get_current_context as _get_current_context
+    from airflow.sdk import Connection as _Connection
+    from airflow.sdk.BaseHook import BaseHook as _BaseHook
     from airflow.sdk.core.baseoperator import BaseOperator as _BaseOperator
-
-    # Context + get_current_context
-    from airflow.sdk.definitions.context import (
-        Context as _Context,
-        get_current_context as _get_current_context,
+    from airflow.sdk.core.basesensoroperator import (
+        BaseSensorOperator as _BaseSensorOperator,
     )
-
-    # TriggerRule
+    from airflow.sdk.definitions.context import Context as _Context
     from airflow.sdk.definitions.trigger_rule import TriggerRule as _TriggerRule
-
 else:
+    from airflow.hooks.base import BaseHook as _BaseHook
     from airflow.models.baseoperator import BaseOperator as _BaseOperator
-
-    # Context + get_current_context
-    from airflow.utils.context import (
-        Context as _Context,
-        get_current_context as _get_current_context,
-    )
-
-    # TriggerRule
+    from airflow.models.connection import Connection as _Connection  # noqa: F401
+    from airflow.operators.python import get_current_context as _get_current_context
+    from airflow.sensors.base import BaseSensorOperator as _BaseSensorOperator
+    from airflow.utils.context import Context as _Context
     from airflow.utils.trigger_rule import TriggerRule as _TriggerRule
 
 
 BaseOperator = _BaseOperator
+BaseSensorOperator = _BaseSensorOperator
+BaseHook = _BaseHook
 Context = _Context
+Connection = _Connection
 TriggerRule = _TriggerRule
 get_current_context: Callable[[], _Context] = _get_current_context
 
