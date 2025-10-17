@@ -1,5 +1,6 @@
-from airflow.hooks.base import BaseHook
 from azure.identity import ClientSecretCredential
+
+from airflow_toolkit._compact.airflow_shim import BaseHook
 
 
 class AzureFileShareServicePrincipalHook(BaseHook):

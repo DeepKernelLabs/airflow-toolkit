@@ -7,9 +7,6 @@ from collections.abc import Mapping
 from typing import Any
 
 import pandas as pd
-from airflow.hooks.base import BaseHook
-from airflow.models.connection import Connection
-from airflow.utils.context import Context
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -20,8 +17,14 @@ from sqlalchemy import (
     inspect,
     text,
 )
-from sqlalchemy.engine import Engine, URL
+from sqlalchemy.engine import URL, Engine
 
+from airflow_toolkit._compact.airflow_shim import (
+    BaseHook,
+    BaseOperator,
+    Connection,
+    Context,
+)
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
 
@@ -29,8 +32,6 @@ if sys.version_info < (3, 8):
     from typing import Literal
 else:
     from typing_extensions import Literal
-
-from airflow.models import BaseOperator
 
 logger = logging.getLogger(__name__)
 
