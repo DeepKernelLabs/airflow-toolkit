@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from airflow_toolkit._compact.airflow_shim import BaseHook, BaseOperator
+from airflow_toolkit._compact.airflow_shim import BaseOperator, BaseHook
 from airflow_toolkit.data_lake_facade import DataLakeFacade
 
 if TYPE_CHECKING:

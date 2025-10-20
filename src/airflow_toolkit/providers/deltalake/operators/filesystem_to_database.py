@@ -20,10 +20,10 @@ from sqlalchemy import (
 from sqlalchemy.engine import URL, Engine
 
 from airflow_toolkit._compact.airflow_shim import (
-    BaseHook,
     BaseOperator,
     Connection,
     Context,
+    BaseHook,
 )
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol

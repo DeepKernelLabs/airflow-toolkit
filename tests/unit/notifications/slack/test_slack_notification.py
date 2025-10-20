@@ -1,7 +1,7 @@
 import pytest
+import datetime
 from airflow import DAG
-from airflow.operators.bash import BashOperator
-
+from airflow_toolkit._compact.airflow_shim import BashOperator
 from airflow_toolkit.notifications.slack import webhook as slack_webhook
 
 
@@ -10,7 +10,11 @@ def test_webhook_slack_notifications_on_fail(mocker):
         slack_webhook, "dag_failure_slack_notification_webhook"
     )
 
-    with DAG("test_slack_notification_on_fail_dag") as dag:
+    with DAG(
+        "test_slack_notification_on_fail_dag",
+        schedule=datetime.timedelta(days=1),
+        start_date=datetime.datetime(2023, 10, 1),
+    ) as dag:
         BashOperator(
             task_id="failing_task",
             bash_command="exit 1",

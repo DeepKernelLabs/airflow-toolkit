@@ -19,6 +19,14 @@ dependencies = [
     "flask_limiter>=3.0,<4,!=3.13",
     "virtualenv>=20.35.3",
     "toml>=0.10.2,<0.11",
+
+
+    "apache-airflow-providers-google>=10.23,<11",
+    "apache-airflow-providers-microsoft-azure>=8,<9",
+    "apache-airflow-providers-sftp>=4,<5",
+    "apache-airflow-providers-slack>=8,<9",
+    "apache-airflow-providers-http>=4,<5",
+    "airflow-provider-duckdb>=0.2,<0.3",
 ]
 
 [tool.pytest.ini_options]
@@ -31,24 +39,11 @@ provider_info = "airflow_toolkit.providers.package:get_provider_info"
 airflow2 = [
     "apache-airflow>=2.8.0,<3",
     "apache-airflow-providers-amazon>=9,<10",
-    "apache-airflow-providers-google>=10.23,<11",
-    "apache-airflow-providers-microsoft-azure>=8,<9",
-    "apache-airflow-providers-sftp>=4,<5",
-    "apache-airflow-providers-slack>=8,<9",
-    "apache-airflow-providers-http>=4,<5",
-    "airflow-provider-duckdb>=0.2,<0.3",
     "sqlalchemy==1.4.54",
 ]
 airflow3 = [
   "apache-airflow>=3,<4",
-  "apache-airflow-providers-amazon>=9",
-  "apache-airflow-providers-google>=10.23",
-  "apache-airflow-providers-microsoft-azure>=8",
-  "apache-airflow-providers-sftp>=4",
-  "apache-airflow-providers-slack>=8",
-  "apache-airflow-providers-http>=4",
-  "apache-airflow-providers-common-sql>=1",
-  "airflow-provider-duckdb>=0.2",
+  "apache-airflow-providers-amazon>=9.15.0,<10",
   "sqlalchemy>=1.4.49,<2",
 ]
 

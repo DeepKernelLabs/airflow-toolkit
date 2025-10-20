@@ -23,10 +23,21 @@ def virtual_environment(tmp_path):
     yield venv_dir
 
 
-def install_package(venv_path: Path, package: str, cwd: Path):
+def install_package(venv_path: Path, package: str, cwd: Path, af_version: str):
     """Install the given package using `uv` inside the given virtualenv."""
+    spec = f"{package}[{af_version}]"
+    # pdb.set_trace()
     subprocess.check_call(
-        ["uv", "pip", "install", "--python", f"{venv_path}/bin/python", package],
+        [
+            "uv",
+            "pip",
+            "install",
+            "--python",
+            f"{venv_path}/bin/python",
+            package,
+            "-e",
+            spec,
+        ],
         cwd=cwd,
     )
 
@@ -56,14 +67,17 @@ def make_env(venv_path: Path, airflow_home: Path) -> dict:
     return env
 
 
-def test_import_package(virtual_environment, project_path, tmp_path):
+@pytest.mark.parametrize("af_version", ["airflow2"])
+def test_import_package(virtual_environment, project_path, tmp_path, af_version):
     venv_path = virtual_environment
     airflow_home = tmp_path / "af_home"
     airflow_home.mkdir(exist_ok=True)
     env = make_env(venv_path, airflow_home)
 
     # Install the project
-    install_package(venv_path, str(project_path), cwd=project_path)
+    install_package(
+        venv_path, str(project_path), cwd=project_path, af_version=af_version
+    )
 
     # Run import and provider checks inside the temp venv
     def run_python(code: str) -> str:
@@ -104,6 +118,7 @@ def test_import_package(virtual_environment, project_path, tmp_path):
         )
 
 
+# TODO, test connection in both env, airflow2 and airflow3
 def test_s3_connection_available(virtual_environment, tmp_path):
     airflow_home = tmp_path / "af_home"
     airflow_home.mkdir(exist_ok=True)

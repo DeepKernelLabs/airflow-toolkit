@@ -1,8 +1,8 @@
 import pendulum
 import pytest
-from airflow.operators.python import PythonOperator
 from botocore.exceptions import ClientError
 
+from airflow_toolkit._compact.airflow_shim import PythonOperator
 from airflow_toolkit.providers.data_lake.operators.data_lake import (
     DataLakeCheckOperator,
     DataLakeDeleteOperator,
@@ -67,7 +67,6 @@ def test_data_lake_check_operator(dag, s3_bucket, s3_resource, s3_client):
         check_res_correct_prefix = PythonOperator(
             task_id="check_res_correct_prefix",
             python_callable=print_res,
-            provide_context=True,
             op_args=["test_data_lake_correct_prefix", True],
         )
 
@@ -81,7 +80,6 @@ def test_data_lake_check_operator(dag, s3_bucket, s3_resource, s3_client):
         check_res_incorrect_prefix = PythonOperator(
             task_id="check_res_incorrect_prefix",
             python_callable=print_res,
-            provide_context=True,
             op_args=["test_data_lake_incorrect_prefix", False],
         )
 
@@ -96,7 +94,6 @@ def test_data_lake_check_operator(dag, s3_bucket, s3_resource, s3_client):
         check_res_correct_prefix_extra_file = PythonOperator(
             task_id="check_correct_extra_file",
             python_callable=print_res,
-            provide_context=True,
             op_args=["test_data_lake_correct_prefix_extra_file", True],
         )
 
@@ -111,7 +108,6 @@ def test_data_lake_check_operator(dag, s3_bucket, s3_resource, s3_client):
         check_res_incorrect_extra_file = PythonOperator(
             task_id="check_res_incorrect_extra_file",
             python_callable=print_res,
-            provide_context=True,
             op_args=["test_data_lake_prefix_incorrect_extra_file", False],
         )
 

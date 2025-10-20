@@ -1,8 +1,8 @@
 import pytest
-from airflow.hooks.base import BaseHook
 from sqlalchemy import create_engine
 from sqlalchemy_utils import create_database as _create_database
 
+from airflow_toolkit._compact.airflow_shim import BaseHook
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
 from airflow_toolkit.filesystems.impl.sftp_filesystem import SFTPFilesystem
 

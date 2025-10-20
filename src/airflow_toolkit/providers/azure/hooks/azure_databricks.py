@@ -5,7 +5,7 @@ from databricks import sql
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config, oauth_service_principal
 
-from airflow_toolkit._compact.airflow_shim import BaseHook, Connection
+from airflow_toolkit._compact.airflow_shim import Connection, BaseHook
 
 
 class AzureDatabricksSqlHook(DbApiHook):
