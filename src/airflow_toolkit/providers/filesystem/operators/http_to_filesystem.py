@@ -31,7 +31,7 @@ except ImportError:
 from airflow.utils.helpers import merge_dicts
 from requests import Response
 
-from airflow_toolkit._compact.airflow_shim import BaseHook, BaseOperator, Context
+from airflow_toolkit._compact.airflow_shim import BaseOperator, Context, BaseHook
 from airflow_toolkit.compression_utils import CompressionOptions, compress
 from airflow_toolkit.exceptions import ApiResponseTypeError
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory

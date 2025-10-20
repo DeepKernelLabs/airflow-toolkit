@@ -6,7 +6,7 @@ from typing import Any
 from deltalake import write_deltalake
 from duckdb_provider.hooks.duckdb_hook import DuckDBHook
 
-from airflow_toolkit._compact.airflow_shim import BaseHook, BaseOperator, Context
+from airflow_toolkit._compact.airflow_shim import BaseOperator, Context, BaseHook
 
 if sys.version_info >= (3, 8):
     from typing import Literal

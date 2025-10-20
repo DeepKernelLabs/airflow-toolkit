@@ -1,10 +1,9 @@
-from airflow.hooks.filesystem import FSHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.google.cloud.hooks.gcs import GCSHook
 from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 
-from airflow_toolkit._compact.airflow_shim import Connection
+from airflow_toolkit._compact.airflow_shim import Connection, FSHook
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
 from airflow_toolkit.filesystems.impl.azure_databricks_volume_filesystem import (
     AzureDatabricksVolumeFilesystem,

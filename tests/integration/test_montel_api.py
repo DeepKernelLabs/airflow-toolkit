@@ -5,9 +5,9 @@ from pathlib import Path
 import pendulum
 import pytest
 from airflow.models.variable import Variable
-from airflow.operators.python import PythonOperator
 from airflow.providers.http.operators.http import HttpOperator
 
+from airflow_toolkit._compact.airflow_shim import PythonOperator
 from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import (  # noqa
     MultiHttpToFilesystem,
 )

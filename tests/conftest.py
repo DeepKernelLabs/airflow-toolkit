@@ -12,8 +12,9 @@ from airflow import DAG
 from airflow.utils.db import provide_session
 
 import json
-from airflow.models import Connection
 from airflow.utils.session import create_session
+
+from airflow_toolkit._compact.airflow_shim import Connection, is_airflow3
 
 
 # ---------- Paths ----------
@@ -58,9 +59,19 @@ def fresh_airflow_db_per_test(tmp_path, monkeypatch):
     monkeypatch.setenv("AIRFLOW__DATABASE__SQL_ALCHEMY_CONN", f"sqlite:///{db_path}")
     # Make sure we don't accidentally inherit any external config
     monkeypatch.delenv("AIRFLOW__CORE__SQL_ALCHEMY_CONN", raising=False)
+    # export AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    monkeypatch.setenv(
+        "AIRFLOW__CORE__AUTH_MANAGER",
+        "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager",
+    )
 
-    # Initialize a clean DB with all tables (Airflow + FAB)
-    subprocess.run(["airflow", "db", "reset", "-y"], check=True)
+    monkeypatch.setenv("AIRFLOW__CORE__STORE_SERIALIZED_DAGS", "False")
+    monkeypatch.setenv("AIRFLOW__CORE__STORE_DAG_CODE", "False")
+    # Initialize DB correctly for AF2 or AF3
+    if is_airflow3:
+        subprocess.run(["airflow", "db", "migrate"], check=True)
+    else:
+        subprocess.run(["airflow", "db", "reset", "-y"], check=True)
 
     yield
     # nothing to teardown; tmp_path is cleaned by pytest

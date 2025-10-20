@@ -2,8 +2,7 @@ import shutil
 from io import BytesIO
 from pathlib import Path
 
-from airflow.hooks.filesystem import FSHook
-
+from airflow_toolkit._compact.airflow_shim import FSHook
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
 
 

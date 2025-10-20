@@ -15,7 +15,7 @@ name = "a2wsgi"
 version = "1.10.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'extra-15-airflow-toolkit-airflow3') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
+    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra != 'extra-15-airflow-toolkit-airflow2') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9a/cb/822c56fbea97e9eee201a2e434a80437f6750ebcb1ed307ee3a0a7505b14/a2wsgi-1.10.10.tar.gz", hash = "sha256:a5bcffb52081ba39df0d5e9a884fc6f819d92e3a42389343ba77cbf809fe1f45", size = 18799 }
 wheels = [
@@ -146,7 +146,7 @@ name = "aiosqlite"
 version = "0.21.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/13/7d/8bca2bf9a247c2c5dfeec1d7a5f40db6518f88d314b8bca9da29670d2671/aiosqlite-0.21.0.tar.gz", hash = "sha256:131bb8056daa3bc875608c631c678cda73922a2d4ba8aec373b19f18c17e7aa3", size = 13454 }
 wheels = [
@@ -158,8 +158,8 @@ name = "airflow-provider-duckdb"
 version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
     { name = "duckdb" },
     { name = "duckdb-engine" },
 ]
@@ -173,6 +173,12 @@ name = "airflow-toolkit"
 version = "0.13.3"
 source = { editable = "." }
 dependencies = [
+    { name = "airflow-provider-duckdb" },
+    { name = "apache-airflow-providers-google" },
+    { name = "apache-airflow-providers-http" },
+    { name = "apache-airflow-providers-microsoft-azure" },
+    { name = "apache-airflow-providers-sftp" },
+    { name = "apache-airflow-providers-slack" },
     { name = "boto3" },
     { name = "databricks-sdk" },
     { name = "databricks-sql-connector" },
@@ -190,26 +196,13 @@ dependencies = [
 
 [package.optional-dependencies]
 airflow2 = [
-    { name = "airflow-provider-duckdb" },
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" } },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" } },
     { name = "apache-airflow-providers-amazon" },
-    { name = "apache-airflow-providers-google" },
-    { name = "apache-airflow-providers-http" },
-    { name = "apache-airflow-providers-microsoft-azure" },
-    { name = "apache-airflow-providers-sftp" },
-    { name = "apache-airflow-providers-slack" },
     { name = "sqlalchemy" },
 ]
 airflow3 = [
-    { name = "airflow-provider-duckdb" },
     { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" } },
     { name = "apache-airflow-providers-amazon" },
-    { name = "apache-airflow-providers-common-sql", version = "1.28.1", source = { registry = "https://pypi.org/simple" } },
-    { name = "apache-airflow-providers-google" },
-    { name = "apache-airflow-providers-http" },
-    { name = "apache-airflow-providers-microsoft-azure" },
-    { name = "apache-airflow-providers-sftp" },
-    { name = "apache-airflow-providers-slack" },
     { name = "sqlalchemy" },
 ]
 
@@ -238,23 +231,16 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "airflow-provider-duckdb", marker = "extra == 'airflow2'", specifier = ">=0.2,<0.3" },
-    { name = "airflow-provider-duckdb", marker = "extra == 'airflow3'", specifier = ">=0.2" },
+    { name = "airflow-provider-duckdb", specifier = ">=0.2,<0.3" },
     { name = "apache-airflow", marker = "extra == 'airflow2'", specifier = ">=2.8.0,<3" },
     { name = "apache-airflow", marker = "extra == 'airflow3'", specifier = ">=3,<4" },
     { name = "apache-airflow-providers-amazon", marker = "extra == 'airflow2'", specifier = ">=9,<10" },
-    { name = "apache-airflow-providers-amazon", marker = "extra == 'airflow3'", specifier = ">=9" },
-    { name = "apache-airflow-providers-common-sql", marker = "extra == 'airflow3'", specifier = ">=1" },
-    { name = "apache-airflow-providers-google", marker = "extra == 'airflow2'", specifier = ">=10.23,<11" },
-    { name = "apache-airflow-providers-google", marker = "extra == 'airflow3'", specifier = ">=10.23" },
-    { name = "apache-airflow-providers-http", marker = "extra == 'airflow2'", specifier = ">=4,<5" },
-    { name = "apache-airflow-providers-http", marker = "extra == 'airflow3'", specifier = ">=4" },
-    { name = "apache-airflow-providers-microsoft-azure", marker = "extra == 'airflow2'", specifier = ">=8,<9" },
-    { name = "apache-airflow-providers-microsoft-azure", marker = "extra == 'airflow3'", specifier = ">=8" },
-    { name = "apache-airflow-providers-sftp", marker = "extra == 'airflow2'", specifier = ">=4,<5" },
-    { name = "apache-airflow-providers-sftp", marker = "extra == 'airflow3'", specifier = ">=4" },
-    { name = "apache-airflow-providers-slack", marker = "extra == 'airflow2'", specifier = ">=8,<9" },
-    { name = "apache-airflow-providers-slack", marker = "extra == 'airflow3'", specifier = ">=8" },
+    { name = "apache-airflow-providers-amazon", marker = "extra == 'airflow3'", specifier = ">=9.15.0,<10" },
+    { name = "apache-airflow-providers-google", specifier = ">=10.23,<11" },
+    { name = "apache-airflow-providers-http", specifier = ">=4,<5" },
+    { name = "apache-airflow-providers-microsoft-azure", specifier = ">=8,<9" },
+    { name = "apache-airflow-providers-sftp", specifier = ">=4,<5" },
+    { name = "apache-airflow-providers-slack", specifier = ">=8,<9" },
     { name = "boto3", specifier = ">=1.34.8,<2" },
     { name = "databricks-sdk", specifier = ">=0.21.0,<0.22" },
     { name = "databricks-sql-connector", specifier = ">=2" },
@@ -337,7 +323,7 @@ wheels = [
 
 [[package]]
 name = "apache-airflow"
-version = "2.8.4"
+version = "2.11.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.11'",
@@ -345,18 +331,20 @@ resolution-markers = [
 ]
 dependencies = [
     { name = "alembic", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow-providers-common-io", version = "1.4.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow-providers-common-sql", version = "1.20.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-compat", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-io", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-sql", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-fab", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "apache-airflow-providers-ftp", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "apache-airflow-providers-http", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "apache-airflow-providers-imap", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow-providers-smtp", version = "1.8.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-smtp", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "apache-airflow-providers-sqlite", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "argcomplete", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "asgiref", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "attrs", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "blinker", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "colorlog", version = "4.8.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "colorlog", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "configupdater", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "connexion", extra = ["flask"], marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "cron-descriptor", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
@@ -365,15 +353,14 @@ dependencies = [
     { name = "deprecated", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "dill", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "flask", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "flask-appbuilder", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "flask-caching", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "flask-login", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "flask-session", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "flask-wtf", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "fsspec", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "google-re2", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "gunicorn", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "importlib-metadata", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "itsdangerous", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "jinja2", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "jsonschema", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
@@ -384,6 +371,7 @@ dependencies = [
     { name = "markupsafe", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "marshmallow-oneofschema", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "mdit-py-plugins", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "methodtools", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "opentelemetry-api", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "opentelemetry-exporter-otlp", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "packaging", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
@@ -398,6 +386,7 @@ dependencies = [
     { name = "python-nvd3", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "python-slugify", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "requests", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "requests-toolbelt", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "rfc3339-validator", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "rich", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "rich-argparse", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
@@ -407,13 +396,12 @@ dependencies = [
     { name = "tabulate", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "tenacity", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "termcolor", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "unicodecsv", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "universal-pathlib", version = "0.1.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "universal-pathlib", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "werkzeug", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f3/e9/305265b47d79ee557ad2babb579ffd591b22cf333c33358ea90bb14e3ff6/apache_airflow-2.8.4.tar.gz", hash = "sha256:899dac9916ad2d973a0dd1b6c5c8d365d04bd2b8839f504d0f287e657365b77e", size = 12354405 }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/e6/fe73a65cff795e93fd82256a10c7e19010f09bc30445afdd288acce41862/apache_airflow-2.11.0.tar.gz", hash = "sha256:252ae1a2f3d75547bb35907ac6abe6a105d02eaab265434ca587b5757940ce08", size = 12502139 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/e1/19dfcdf53caeff639f21e8c2f1200575c55c8cf3f73f2410e8338cdaa3d7/apache_airflow-2.8.4-py3-none-any.whl", hash = "sha256:48f4f81333a73e0c25b24ce4c981b70cd58c43aab608d370c63b585bd1d6e4d2", size = 13264324 },
+    { url = "https://files.pythonhosted.org/packages/11/28/b39fecaf48735fedf54ddf4dad00f6004e6243c94150c978cd70a12d6f4b/apache_airflow-2.11.0-py3-none-any.whl", hash = "sha256:e3449d46916be2cf7e6068b86dbd958577306e22407e6493ef2ae83a0c73a424", size = 13458587 },
 ]
 
 [[package]]
@@ -425,8 +413,8 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "apache-airflow-core", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-task-sdk", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow-core", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-task-sdk", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/be/42/af606a7f0afb692474965faac627105ca4abd814016f7f4c2c15d864755b/apache_airflow-3.0.6.tar.gz", hash = "sha256:b1baec61de9ee69a1a5fc9e280f2e18389325880ce3aec01e17922c8b2477ed2", size = 27272 }
 wheels = [
@@ -438,65 +426,65 @@ name = "apache-airflow-core"
 version = "3.0.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "a2wsgi", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "aiosqlite", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "alembic", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-common-compat", version = "1.7.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-common-io", version = "1.6.3", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-common-sql", version = "1.28.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-smtp", version = "2.3.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-standard", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-task-sdk", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "argcomplete", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "asgiref", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "attrs", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "cadwyn", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "colorlog", version = "6.10.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "cron-descriptor", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "croniter", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "cryptography", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "deprecated", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "dill", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "fastapi", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "flask", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "gunicorn", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "importlib-metadata", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "itsdangerous", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "jinja2", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "jsonschema", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "lazy-object-proxy", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "libcst", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "linkify-it-py", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "lockfile", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "methodtools", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "opentelemetry-api", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "opentelemetry-exporter-otlp", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "packaging", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pathspec", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pendulum", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pluggy", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "psutil", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pydantic", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pygments", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pyjwt", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "python-daemon", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "python-dateutil", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "python-slugify", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "requests", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "rich", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "rich-argparse", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "setproctitle", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "sqlalchemy", extra = ["asyncio"], marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "sqlalchemy-jsonfield", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "sqlalchemy-utils", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "svcs", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "tabulate", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "tenacity", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "termcolor", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "universal-pathlib", version = "0.3.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "uuid6", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "a2wsgi", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "aiosqlite", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "alembic", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-compat", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-io", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-sql", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-smtp", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-standard", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-task-sdk", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "argcomplete", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "asgiref", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "attrs", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "cadwyn", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "colorlog", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "cron-descriptor", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "croniter", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "cryptography", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "deprecated", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "dill", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "fastapi", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "flask", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "gunicorn", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "importlib-metadata", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "itsdangerous", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "jinja2", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "jsonschema", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "lazy-object-proxy", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "libcst", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "linkify-it-py", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "lockfile", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "methodtools", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "opentelemetry-api", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "opentelemetry-exporter-otlp", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "packaging", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pathspec", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pendulum", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pluggy", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "psutil", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pydantic", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pygments", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pyjwt", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "python-daemon", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "python-dateutil", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "python-slugify", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "requests", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "rich", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "rich-argparse", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "setproctitle", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "sqlalchemy", extra = ["asyncio"], marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "sqlalchemy-jsonfield", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "sqlalchemy-utils", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "svcs", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "tabulate", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "tenacity", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "termcolor", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "universal-pathlib", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "uuid6", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/69/b8/52227f28608ba6cf80ee571e0c27e3c19379a206e9aab341ecff8c7c80df/apache_airflow_core-3.0.6.tar.gz", hash = "sha256:1a18e4ee726592f0c0fb28d27a618e2ecdb01e8b698d28fb3d14ca9e5e42e0da", size = 2884781 }
 wheels = [
@@ -505,15 +493,13 @@ wheels = [
 
 [[package]]
 name = "apache-airflow-providers-amazon"
-version = "9.1.0"
+version = "9.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-common-compat", version = "1.2.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow-providers-common-compat", version = "1.7.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-common-sql", version = "1.20.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow-providers-common-sql", version = "1.28.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow-providers-common-compat" },
+    { name = "apache-airflow-providers-common-sql" },
     { name = "apache-airflow-providers-http" },
     { name = "asgiref" },
     { name = "boto3" },
@@ -521,42 +507,24 @@ dependencies = [
     { name = "inflection" },
     { name = "jmespath" },
     { name = "jsonpath-ng" },
+    { name = "marshmallow" },
     { name = "pyathena" },
-    { name = "python3-saml" },
     { name = "redshift-connector" },
+    { name = "sagemaker-studio" },
     { name = "watchtower" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2d/e5/d51bdf2114d1428d01fa4410d888f02ef2d549040c14b2056c6daebe9eb7/apache_airflow_providers_amazon-9.1.0.tar.gz", hash = "sha256:7ded0b962e6b91f7221772d95e27efa212fe13e408a0137b4098eca329f8dbc3", size = 345654 }
+sdist = { url = "https://files.pythonhosted.org/packages/43/64/5304f48b1fa2318c78f339e95042a0a6fd2efb46abd296e2cd234ab3c0a6/apache_airflow_providers_amazon-9.15.0.tar.gz", hash = "sha256:71dc1ed3323f332015c464e03d5a257b7ad4e52ca9b6f6073b9217beec14a300", size = 2032133 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c7/73/f09ad4be8164140edc77bf5139402102b21a6b5b62a9991af2597421b391/apache_airflow_providers_amazon-9.1.0-py3-none-any.whl", hash = "sha256:999dd3868cfe0b8a11331614ccf14236eda31e27bd6332748b73b89f95caabae", size = 596739 },
-]
-
-[[package]]
-name = "apache-airflow-providers-common-compat"
-version = "1.2.2"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
-dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/74/99/3c18d142ce73a3831aebd3bea5e9f7d31f6ed801ecf253499c1c52701e4f/apache_airflow_providers_common_compat-1.2.2.tar.gz", hash = "sha256:4094ef0226e5105516797cc19aa10bf76a1486ba81cb7e1ca478ed90d6b2a1cf", size = 11214 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2b/89/33b6cba45d1297a27088ed305665dfcdea3cbf646be6d350c6508bfe2dc7/apache_airflow_providers_common_compat-1.2.2-py3-none-any.whl", hash = "sha256:ce050d9c8d9eba42e52855f986d6382b3d79f611c1ed05310a0c7466bf004dcd", size = 21315 },
+    { url = "https://files.pythonhosted.org/packages/53/92/a5961c634b8dc26b2aed3a1e0bf883ee3c8cd995c813a143467a50269bac/apache_airflow_providers_amazon-9.15.0-py3-none-any.whl", hash = "sha256:91bd8547651082dcf5bfbc81892126b99c8460d891483d0e946f2ff0b06e0ab2", size = 674023 },
 ]
 
 [[package]]
 name = "apache-airflow-providers-common-compat"
 version = "1.7.4"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
 dependencies = [
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e3/49/9bef427ff80c458d5564b095c24a85411d6f5433a444eb7b9d534b0d1111/apache_airflow_providers_common_compat-1.7.4.tar.gz", hash = "sha256:557b395995823a96ef62e8bff307f1d584abf85fae929b8d687983a3df7f5f83", size = 21163 }
 wheels = [
@@ -565,30 +533,11 @@ wheels = [
 
 [[package]]
 name = "apache-airflow-providers-common-io"
-version = "1.4.2"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
-dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/50/43/c2ead8087e43d7f37947536b5380d045c55c74dd1e7d05112e0438af1017/apache_airflow_providers_common_io-1.4.2.tar.gz", hash = "sha256:200a95f066ece40ef379de50ba96b7ffecdb6ceab4c4fbad5a47cca1f0a0456b", size = 11755 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/40/72/b6b6cbf905b2cc6440a4410f765d58101bf8dac60f8d39c62435c7b423b0/apache_airflow_providers_common_io-1.4.2-py3-none-any.whl", hash = "sha256:b427fb056eba87677d229646296832e71bd44ac29984b1e655d5eb356caae254", size = 18025 },
-]
-
-[[package]]
-name = "apache-airflow-providers-common-io"
 version = "1.6.3"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
 dependencies = [
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a2/c1/3b57c0341384c49d6716b92b945728d488002a76ca4302e57d39c170bf65/apache_airflow_providers_common_io-1.6.3.tar.gz", hash = "sha256:a758c6b56d6faa478f9a40d40f207c340e9fa6049ada967231c4f449ed14740b", size = 23940 }
 wheels = [
@@ -597,35 +546,14 @@ wheels = [
 
 [[package]]
 name = "apache-airflow-providers-common-sql"
-version = "1.20.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
-dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "more-itertools", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "sqlparse", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/ea/f481fdb03667feeede8495835d643e5896d0e39283d70f7b94a5104abe14/apache_airflow_providers_common_sql-1.20.0.tar.gz", hash = "sha256:2bc7c4b85a3b37ab9d18da7024203e1521574ff0a7bda3efba232170ab1b7d5e", size = 35477 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/3a/ec6a4e112a6268b33dbf8b988d10f38b7b9457a403fb760901aa77b36d7d/apache_airflow_providers_common_sql-1.20.0-py3-none-any.whl", hash = "sha256:a2f5749ec15337128858e61d47a7ac9ffacab5a405ac58843d95600c99fe760c", size = 47347 },
-]
-
-[[package]]
-name = "apache-airflow-providers-common-sql"
 version = "1.28.1"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
 dependencies = [
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "methodtools", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "more-itertools", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "sqlparse", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "methodtools" },
+    { name = "more-itertools" },
+    { name = "sqlparse" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/26/1b/5ec5e768bfde559ae4cbba3727f2332556f0ad29e7a35e15782cd141f1dc/apache_airflow_providers_common_sql-1.28.1.tar.gz", hash = "sha256:c2ef46561014d70ed2ec9b7d3641a2c3713b008a8c0c984bcde7c3fbda8a5339", size = 105036 }
 wheels = [
@@ -633,15 +561,33 @@ wheels = [
 ]
 
 [[package]]
-name = "apache-airflow-providers-ftp"
-version = "3.11.1"
+name = "apache-airflow-providers-fab"
+version = "1.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-compat", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "flask", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "flask-appbuilder", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "flask-login", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "google-re2", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "jmespath", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/62/86/0877a86ab3e7f6742e10fac545aa947de9a2c7746ea7ff78efb399368e0f/apache_airflow_providers_ftp-3.11.1.tar.gz", hash = "sha256:205086fc296f8cc255fb8f911049ed3aaf123c6f4749f2899faf60678b3b5cb3", size = 13454 }
+sdist = { url = "https://files.pythonhosted.org/packages/cf/5f/e3428cba776c3a55dfb365a6c8000c36d35665496cc6bd1fbfacef6ffb17/apache_airflow_providers_fab-1.5.3.tar.gz", hash = "sha256:bb4d879fb9bf9bca7c0f103e1dc9d1fa25efe02e2c4536f4d60c789786fb1f89", size = 62751 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/48/8e/775c3b5a5e8a4bac1c2f336b4331a787b6cd67165e0f92a1cdf1a305f103/apache_airflow_providers_ftp-3.11.1-py3-none-any.whl", hash = "sha256:77754b44fc9e22773e9d7d160970d172fa7c2f8a19bceebcd4d2738871ef578f", size = 19443 },
+    { url = "https://files.pythonhosted.org/packages/b0/96/bbc8b1c87e20488398b5630d7ddac13c078d032c25741495c0e6eec00425/apache_airflow_providers_fab-1.5.3-py3-none-any.whl", hash = "sha256:0b1352e16266f40aa1037af316fd3abcc3852ca49b033acac9f9cad60e5f9764", size = 98118 },
+]
+
+[[package]]
+name = "apache-airflow-providers-ftp"
+version = "3.13.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ce/5c/bae975ff861ceac776275f119659ed72c102d1920c116162a3477b124d6d/apache_airflow_providers_ftp-3.13.2.tar.gz", hash = "sha256:2574f041b42a6c6952142392f4540434a6c7ec6ee3760fd5b6b5990e0aac4709", size = 67827 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/2f/c9ec9df49a270092a2d49176967cddf32c4d5a0de58f4e26211331e76d4a/apache_airflow_providers_ftp-3.13.2-py3-none-any.whl", hash = "sha256:d75b168931c598c726d7fcafa3f50629ecef4e8376fb4d9a5d1846ad26865a7d", size = 19825 },
 ]
 
 [[package]]
@@ -649,12 +595,10 @@ name = "apache-airflow-providers-google"
 version = "10.26.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-common-compat", version = "1.2.2", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow-providers-common-compat", version = "1.7.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-common-sql", version = "1.20.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow-providers-common-sql", version = "1.28.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-compat" },
+    { name = "apache-airflow-providers-common-sql" },
     { name = "asgiref" },
     { name = "dill" },
     { name = "gcloud-aio-auth" },
@@ -730,8 +674,8 @@ version = "4.13.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
     { name = "asgiref" },
     { name = "requests" },
     { name = "requests-toolbelt" },
@@ -743,14 +687,14 @@ wheels = [
 
 [[package]]
 name = "apache-airflow-providers-imap"
-version = "3.7.0"
+version = "3.9.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/37/a8/6c088fd5a4c3d2f332d7467c42a64052b4f525f77299f164219bc06f811e/apache_airflow_providers_imap-3.7.0.tar.gz", hash = "sha256:b3fae432280a07c9bd9f05eed5b500a6c080905c1403df342305e798dcf87754", size = 12225 }
+sdist = { url = "https://files.pythonhosted.org/packages/ed/5b/a1e9027520e8b97d32f7cea61aa2a75e6d991e1aefaf0469dfeeb7f813f7/apache_airflow_providers_imap-3.9.2.tar.gz", hash = "sha256:b6882bb44ee864dc97954a052cd77ef896c900f8dfe32b994c416623fbee9cbe", size = 24574 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6e/07/9b7c99745531af0980211b722b002f75c00eec4f720be0322415effb6ba8/apache_airflow_providers_imap-3.7.0-py3-none-any.whl", hash = "sha256:f7df79dd99a43fe18c009740aa7dd2c52e1d8caac173cf745e8d59b06e02adcf", size = 17289 },
+    { url = "https://files.pythonhosted.org/packages/90/b7/3bde934d1a841b92810954dd44e1905d5ca414c84c7e2b600518e58cf52f/apache_airflow_providers_imap-3.9.2-py3-none-any.whl", hash = "sha256:f6bf1b0bff25116dd7b265c0aa5aabd2ff82733bab5a827fb7c4bc08905cb5e3", size = 17636 },
 ]
 
 [[package]]
@@ -760,8 +704,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "adal" },
     { name = "adlfs" },
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
     { name = "azure-batch" },
     { name = "azure-cosmos" },
     { name = "azure-datalake-store" },
@@ -792,8 +736,8 @@ name = "apache-airflow-providers-sftp"
 version = "4.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
     { name = "apache-airflow-providers-ssh" },
     { name = "asyncssh" },
     { name = "paramiko" },
@@ -808,10 +752,9 @@ name = "apache-airflow-providers-slack"
 version = "8.9.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-common-sql", version = "1.20.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow-providers-common-sql", version = "1.28.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-sql" },
     { name = "slack-sdk" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/47/f4/8907398e26c2027b4234e78b85618b759970e3fa103d6655e49f63c7fd44/apache_airflow_providers_slack-8.9.2.tar.gz", hash = "sha256:197c191be9f40885c85e124dec68d0121784d82d0cd06f5665b37087008cb77f", size = 23910 }
@@ -821,32 +764,13 @@ wheels = [
 
 [[package]]
 name = "apache-airflow-providers-smtp"
-version = "1.8.1"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
-dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2f/3e/da5b5b3dbe8b526ac987e4d1d784d152dc6557858a72f6d843204d43e743/apache_airflow_providers_smtp-1.8.1.tar.gz", hash = "sha256:8144bc71c54cf03c165d2ea1364530e232ecc70b53847624400ba4786599ea6a", size = 14567 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/88/43/cf8719e92b743ee3496a9a8928e51f6addc8c59b880b9a83f36fd56a6063/apache_airflow_providers_smtp-1.8.1-py3-none-any.whl", hash = "sha256:cdb0f1f19dff930a7f441d19a876f3a8e9782377328060e6bad8546e2171cf68", size = 22600 },
-]
-
-[[package]]
-name = "apache-airflow-providers-smtp"
 version = "2.3.1"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
 dependencies = [
-    { name = "aiosmtplib", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "apache-airflow-providers-common-compat", version = "1.7.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "aiosmtplib" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-compat" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ce/c8/9118485a3ccf18f2a47311d3f2b6890b4d8564865375fd225e2ca7e3d2c8/apache_airflow_providers_smtp-2.3.1.tar.gz", hash = "sha256:45c9b0d4fd8f086568b0b8d263d48335c9ca2bd1cf72b566f1e68deee70007f9", size = 44685 }
 wheels = [
@@ -855,15 +779,15 @@ wheels = [
 
 [[package]]
 name = "apache-airflow-providers-sqlite"
-version = "3.9.1"
+version = "4.1.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow-providers-common-sql", version = "1.20.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow-providers-common-sql", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e3/aa/0a98af6cd069969039d490971dea94a32e6bcc1f099f3a7bc12661e83689/apache_airflow_providers_sqlite-3.9.1.tar.gz", hash = "sha256:65459e0f1d54bfcb798d0b21050ce2348db018fa502c68e3c919b75e6bac9086", size = 9440 }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/51/cb455d9befb7116c4e3dda7513d786b049b73e3a85ec1069968e535a9a34/apache_airflow_providers_sqlite-4.1.2.tar.gz", hash = "sha256:277580a9b1261b90254044a45d27981b0e8e2c558bfe96b193c9e6a3a30a9e4d", size = 31580 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/20/a9/105ab57a2460d99a94a9b2a6b0dff78774f2228009582dff023e9f1f1dac/apache_airflow_providers_sqlite-3.9.1-py3-none-any.whl", hash = "sha256:774d947b9c0e9da564509124801f249bb8e9e9a15cde47b017953d0ea3c72e1a", size = 13978 },
+    { url = "https://files.pythonhosted.org/packages/13/c5/37c86ab4c6827b61d6c07e401495f022e2f2b5a0c70c412997cf6b0854de/apache_airflow_providers_sqlite-4.1.2-py3-none-any.whl", hash = "sha256:7ee6fd5212218217ae189d280d41713ecd8b5af1d058e26e0ba4a23fa1a76f3b", size = 11059 },
 ]
 
 [[package]]
@@ -871,8 +795,8 @@ name = "apache-airflow-providers-ssh"
 version = "3.14.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "2.8.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "2.11.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
     { name = "paramiko" },
     { name = "sshtunnel" },
 ]
@@ -886,7 +810,7 @@ name = "apache-airflow-providers-standard"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow", version = "3.0.6", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fb/ca/482c82161c23624f0e8bb2b3b9c104981fc48c70d371caafa264594ad4cd/apache_airflow_providers_standard-1.9.0.tar.gz", hash = "sha256:46c4a0399f54e88f84e67a1881886a30ef6aa4b5abb52df2f3e5e83d2e8908b7", size = 180443 }
 wheels = [
@@ -898,18 +822,18 @@ name = "apache-airflow-task-sdk"
 version = "1.0.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "apache-airflow-core", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "attrs", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "fsspec", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "jinja2", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "methodtools", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "msgspec", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pendulum", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "psutil", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "python-dateutil", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "retryhttp", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "structlog", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "apache-airflow-core", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "attrs", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "fsspec", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "jinja2", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "methodtools", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "msgspec", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pendulum", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "psutil", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "python-dateutil", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "retryhttp", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "structlog", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/3d/7e/13034bcfc743a5af70a38d2d91407169f44e83b5305e5075bef0db02eb64/apache_airflow_task_sdk-1.0.6.tar.gz", hash = "sha256:5f3a1c8ba5deecc976728e6cf87ae2f2b50913427fd04ae3d024f5b23bac14bc", size = 1211455 }
 wheels = [
@@ -918,14 +842,14 @@ wheels = [
 
 [[package]]
 name = "apispec"
-version = "6.8.3"
+version = "6.8.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "packaging", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bd/1d/4020bfbbf9dd81cc38c5134a2c0b247536e5e723172a54aec0bda4613d9d/apispec-6.8.3.tar.gz", hash = "sha256:0823235aa171187fc0fb1dfd28211ebcf5fe7768b2a7e1929d06671e162439ae", size = 77480 }
+sdist = { url = "https://files.pythonhosted.org/packages/da/88/b94988c3f959836829db9a83dacb6a09809c7aea16ad962050c5ce78c8f3/apispec-6.8.4.tar.gz", hash = "sha256:fd0ed14af71a2949d9aeb96b72ce1517cb4a48a5c55667cd0483b7ed33156a2a", size = 77737 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3e/3a/3134f5b5b19035ea8d9db0a4f0fc911ea9b9197e3eca1511da1aa94a7af2/apispec-6.8.3-py3-none-any.whl", hash = "sha256:aeb768de47a0eabe59dc522540e22a5381e2a7b803948cb528969155343bd57e", size = 30518 },
+    { url = "https://files.pythonhosted.org/packages/3e/b5/92b037889c7ae8a875f276c8b1e636b3ac76d10e57a82e90340efebcb8d1/apispec-6.8.4-py3-none-any.whl", hash = "sha256:18d6cfaf6a9742d4f9a8f364bfabb7e8884983e10b155ad13616e084f47164ef", size = 30633 },
 ]
 
 [package.optional-dependencies]
@@ -1528,13 +1452,13 @@ name = "cadwyn"
 version = "5.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "backports-strenum", marker = "(python_full_version < '3.11' and extra == 'extra-15-airflow-toolkit-airflow3') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
-    { name = "fastapi", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "jinja2", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pydantic", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "starlette", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typing-inspection", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "backports-strenum", marker = "(python_full_version < '3.11' and extra != 'extra-15-airflow-toolkit-airflow2') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
+    { name = "fastapi", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "jinja2", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pydantic", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "starlette", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typing-inspection", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5d/7d/97b2ca71d651ee869cc33bb82f3b451781f9c025a7697ec2e82df15a7c9e/cadwyn-5.6.0.tar.gz", hash = "sha256:c5e8a56f175a7b2d1fb86163de217e8b20454004f79a0bdb5125015ebe8a162d", size = 646615 }
 wheels = [
@@ -1547,7 +1471,7 @@ version = "25.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
-    { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.11' or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e3/42/988b3a667967e9d2d32346e7ed7edee540ef1cee829b53ef80aa8d4a0222/cattrs-25.2.0.tar.gz", hash = "sha256:f46c918e955db0177be6aa559068390f71988e877c603ae2e56c71827165cc06", size = 506531 }
@@ -1685,30 +1609,10 @@ wheels = [
 
 [[package]]
 name = "colorlog"
-version = "4.8.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
-dependencies = [
-    { name = "colorama", marker = "(sys_platform == 'win32' and extra == 'extra-15-airflow-toolkit-airflow2') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/75/32/cdfba08674d72fe7895a8ec7be8f171e8502274999cae9497e4545404873/colorlog-4.8.0.tar.gz", hash = "sha256:59b53160c60902c405cdec28d38356e09d40686659048893e026ecbd589516b1", size = 28770 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/51/62/61449c6bb74c2a3953c415b2cdb488e4f0518ac67b35e2b03a6d543035ca/colorlog-4.8.0-py2.py3-none-any.whl", hash = "sha256:3dd15cb27e8119a24c1a7b5c93f9f3b455855e0f73993b1c25921b2f646f1dcd", size = 10023 },
-]
-
-[[package]]
-name = "colorlog"
 version = "6.10.1"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
 dependencies = [
-    { name = "colorama", marker = "(sys_platform == 'win32' and extra == 'extra-15-airflow-toolkit-airflow3') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a2/61/f083b5ac52e505dfc1c624eafbf8c7589a0d7f32daa398d2e7590efa5fda/colorlog-6.10.1.tar.gz", hash = "sha256:eb4ae5cb65fe7fec7773c2306061a8e63e02efc2c72eba9d27b0fa23c94f1321", size = 17162 }
 wheels = [
@@ -2044,32 +1948,11 @@ wheels = [
 
 [[package]]
 name = "email-validator"
-version = "1.3.1"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
-dependencies = [
-    { name = "dnspython", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "idna", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8e/db/5849bad11c5e03b41c7331370a2020bc98822dd8253b1861ec70351b8e75/email_validator-1.3.1.tar.gz", hash = "sha256:d178c5c6fa6c6824e9b04f199cf23e79ac15756786573c190d2ad13089411ad2", size = 29344 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/ec/adc595d04e795b04bb0028fc6b067713fdb4a7e8cec44b428f7144fc432e/email_validator-1.3.1-py2.py3-none-any.whl", hash = "sha256:49a72f5fa6ed26be1c964f0567d931d10bf3fdeeacdf97bc26ef1cd2a44e0bda", size = 22715 },
-]
-
-[[package]]
-name = "email-validator"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
 dependencies = [
-    { name = "dnspython", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "idna", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "dnspython" },
+    { name = "idna" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f5/22/900cb125c76b7aaa450ce02fd727f452243f2e91a61af068b40adba60ea9/email_validator-2.3.0.tar.gz", hash = "sha256:9fc05c37f2f6cf439ff414f8fc46d917929974a82244c20eb10231ba60c54426", size = 51238 }
 wheels = [
@@ -2111,9 +1994,9 @@ name = "fastapi"
 version = "0.119.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pydantic", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "starlette", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "pydantic", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "starlette", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0a/f9/5c5bcce82a7997cc0eb8c47b7800f862f6b56adc40486ed246e5010d443b/fastapi-0.119.0.tar.gz", hash = "sha256:451082403a2c1f0b99c6bd57c09110ed5463856804c8078d38e5a1f1035dbbb7", size = 336756 }
 wheels = [
@@ -2122,12 +2005,12 @@ wheels = [
 
 [package.optional-dependencies]
 standard = [
-    { name = "email-validator", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "fastapi-cli", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "jinja2", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "python-multipart", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "uvicorn", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "email-validator", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "fastapi-cli", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "jinja2", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "python-multipart", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "uvicorn", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 
 [[package]]
@@ -2135,9 +2018,9 @@ name = "fastapi-cli"
 version = "0.0.13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "rich-toolkit", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typer", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "uvicorn", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "rich-toolkit", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typer", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "uvicorn", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/32/4e/3f61850012473b097fc5297d681bd85788e186fadb8555b67baf4c7707f4/fastapi_cli-0.0.13.tar.gz", hash = "sha256:312addf3f57ba7139457cf0d345c03e2170cc5a034057488259c33cd7e494529", size = 17780 }
 wheels = [
@@ -2146,8 +2029,8 @@ wheels = [
 
 [package.optional-dependencies]
 standard = [
-    { name = "fastapi-cloud-cli", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "uvicorn", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "fastapi-cloud-cli", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "uvicorn", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 
 [[package]]
@@ -2155,13 +2038,13 @@ name = "fastapi-cloud-cli"
 version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pydantic", extra = ["email"], marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "rich-toolkit", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "rignore", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "sentry-sdk", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typer", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "uvicorn", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pydantic", extra = ["email"], marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "rich-toolkit", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "rignore", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "sentry-sdk", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typer", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "uvicorn", extra = ["standard"], marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f9/48/0f14d8555b750dc8c04382804e4214f1d7f55298127f3a0237ba566e69dd/fastapi_cloud_cli-0.3.1.tar.gz", hash = "sha256:8c7226c36e92e92d0c89827e8f56dbf164ab2de4444bd33aa26b6c3f7675db69", size = 24080 }
 wheels = [
@@ -2194,13 +2077,13 @@ wheels = [
 
 [[package]]
 name = "flask-appbuilder"
-version = "4.3.11"
+version = "4.5.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "apispec", extra = ["yaml"], marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "click", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "colorama", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-    { name = "email-validator", version = "1.3.1", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "email-validator", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "flask", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "flask-babel", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "flask-jwt-extended", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
@@ -2219,9 +2102,9 @@ dependencies = [
     { name = "werkzeug", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "wtforms", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e9/5c/f907e3fb074c7318907e24ecacf03ed8915dd4a059528167d7c9a200b786/Flask-AppBuilder-4.3.11.tar.gz", hash = "sha256:193d72e953b5100809df89ec4c8b62c7617c24998a3b501ad85c49ed2aa73fc5", size = 7520393 }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/9c/b6920650c21879f1e27afafba57af2985120d6e7896b625e7f671abd1834/Flask-AppBuilder-4.5.3.tar.gz", hash = "sha256:2f3f953b8134bed02ed0236ab7e85e6c354b1b3680069d76dfadc017eb05c561", size = 7355555 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/6d/0591ee80eddde0c79988d832cae6255e02ceb49d44fe4c7546d4a2e634c6/Flask_AppBuilder-4.3.11-py3-none-any.whl", hash = "sha256:9630b19e7fee1bfd03982ff9d48309e5eaf0302594542072385dc5d7073fd700", size = 2207681 },
+    { url = "https://files.pythonhosted.org/packages/4d/47/998e345adf9878ee74961709c5be8c2999054b11576373c6b80947e479f2/Flask_AppBuilder-4.5.3-py3-none-any.whl", hash = "sha256:9223db6c43939f8646fc6458d949ea4d5de182e8455bdfb0010bb37359d96ccf", size = 2231389 },
 ]
 
 [[package]]
@@ -2472,7 +2355,7 @@ name = "google-analytics-admin"
 version = "0.25.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2566,7 +2449,7 @@ version = "1.114.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "google-cloud-bigquery" },
     { name = "google-cloud-resource-manager" },
@@ -2589,7 +2472,7 @@ name = "google-cloud-appengine-logging"
 version = "1.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2617,7 +2500,7 @@ name = "google-cloud-automl"
 version = "2.16.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2632,7 +2515,7 @@ name = "google-cloud-batch"
 version = "0.17.36"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2647,7 +2530,7 @@ name = "google-cloud-bigquery"
 version = "3.38.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "google-cloud-core" },
     { name = "google-resumable-media" },
@@ -2665,7 +2548,7 @@ name = "google-cloud-bigquery-datatransfer"
 version = "3.19.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2680,7 +2563,7 @@ name = "google-cloud-bigtable"
 version = "2.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "google-cloud-core" },
     { name = "google-crc32c" },
@@ -2698,7 +2581,7 @@ name = "google-cloud-build"
 version = "3.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -2714,7 +2597,7 @@ name = "google-cloud-compute"
 version = "1.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2729,7 +2612,7 @@ name = "google-cloud-container"
 version = "2.59.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2757,7 +2640,7 @@ name = "google-cloud-datacatalog"
 version = "3.27.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -2773,7 +2656,7 @@ name = "google-cloud-dataflow-client"
 version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2788,7 +2671,7 @@ name = "google-cloud-dataform"
 version = "0.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -2804,7 +2687,7 @@ name = "google-cloud-dataplex"
 version = "2.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -2820,7 +2703,7 @@ name = "google-cloud-dataproc"
 version = "5.21.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -2836,7 +2719,7 @@ name = "google-cloud-dataproc-metastore"
 version = "1.19.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -2852,7 +2735,7 @@ name = "google-cloud-dlp"
 version = "3.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2867,7 +2750,7 @@ name = "google-cloud-kms"
 version = "3.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -2883,7 +2766,7 @@ name = "google-cloud-language"
 version = "2.17.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2898,7 +2781,7 @@ name = "google-cloud-logging"
 version = "3.12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "google-cloud-appengine-logging" },
     { name = "google-cloud-audit-log" },
@@ -2918,7 +2801,7 @@ name = "google-cloud-memcache"
 version = "1.12.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2933,7 +2816,7 @@ name = "google-cloud-monitoring"
 version = "2.27.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2948,7 +2831,7 @@ name = "google-cloud-orchestration-airflow"
 version = "1.17.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2963,7 +2846,7 @@ name = "google-cloud-os-login"
 version = "2.17.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -2978,7 +2861,7 @@ name = "google-cloud-pubsub"
 version = "2.31.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "grpcio" },
@@ -2998,7 +2881,7 @@ name = "google-cloud-redis"
 version = "2.18.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -3013,7 +2896,7 @@ name = "google-cloud-resource-manager"
 version = "1.14.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -3029,7 +2912,7 @@ name = "google-cloud-run"
 version = "0.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -3045,7 +2928,7 @@ name = "google-cloud-secret-manager"
 version = "2.24.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -3061,7 +2944,7 @@ name = "google-cloud-spanner"
 version = "3.57.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-cloud-core" },
     { name = "grpc-google-iam-v1" },
     { name = "grpc-interceptor" },
@@ -3079,7 +2962,7 @@ name = "google-cloud-speech"
 version = "2.33.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -3111,7 +2994,7 @@ name = "google-cloud-storage-transfer"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -3126,7 +3009,7 @@ name = "google-cloud-tasks"
 version = "2.19.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "grpc-google-iam-v1" },
     { name = "proto-plus" },
@@ -3142,7 +3025,7 @@ name = "google-cloud-texttospeech"
 version = "2.29.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -3157,7 +3040,7 @@ name = "google-cloud-translate"
 version = "3.21.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "google-cloud-core" },
     { name = "grpc-google-iam-v1" },
@@ -3174,7 +3057,7 @@ name = "google-cloud-videointelligence"
 version = "2.16.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -3189,7 +3072,7 @@ name = "google-cloud-vision"
 version = "3.10.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -3204,7 +3087,7 @@ name = "google-cloud-workflows"
 version = "1.18.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-api-core", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "google-api-core", extra = ["grpc"] },
     { name = "google-auth" },
     { name = "proto-plus" },
     { name = "protobuf" },
@@ -3345,7 +3228,7 @@ name = "grpc-google-iam-v1"
 version = "0.14.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "googleapis-common-protos", extra = ["grpc"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "googleapis-common-protos", extra = ["grpc"] },
     { name = "grpcio" },
     { name = "protobuf" },
 ]
@@ -3871,7 +3754,7 @@ name = "libcst"
 version = "1.8.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyyaml", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "pyyaml", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5c/55/ca4552d7fe79a91b2a7b4fa39991e8a45a17c8bfbcaf264597d95903c777/libcst-1.8.5.tar.gz", hash = "sha256:e72e1816eed63f530668e93a4c22ff1cf8b91ddce0ec53e597d3f6c53e103ec7", size = 884582 }
 wheels = [
@@ -4072,7 +3955,7 @@ name = "marshmallow"
 version = "3.26.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "packaging", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "packaging", marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ab/5e/5e53d26b42ab75491cda89b871dab9e97c840bf12c63ec58a1919710cd06/marshmallow-3.26.1.tar.gz", hash = "sha256:e6d8affb6cb61d39d26402096dc0aee12d5a26d490a121f118d2e81dc0719dc6", size = 221825 }
 wheels = [
@@ -4093,15 +3976,16 @@ wheels = [
 
 [[package]]
 name = "marshmallow-sqlalchemy"
-version = "0.26.1"
+version = "0.28.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "marshmallow", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "packaging", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
     { name = "sqlalchemy", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/5c/2446f7692fa458f8884b4be2f35723a307c464e2edb150754c86f3b3acbe/marshmallow-sqlalchemy-0.26.1.tar.gz", hash = "sha256:d8525f74de51554b5c8491effe036f60629a426229befa33ff614c8569a16a73", size = 49540 }
+sdist = { url = "https://files.pythonhosted.org/packages/07/84/9cced63c2e1bbd4f243f5aed0a4eaf018ef97475e4eecf388bed4d5033b8/marshmallow-sqlalchemy-0.28.2.tar.gz", hash = "sha256:2ab0f1280c793e5aec81deab3e63ec23688ddfe05e5f38ac960368a1079520a1", size = 52156 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/84/1f4d7393d04f2ae0d4098791d1901a713f45ba70ff6f3c35ff2f7fd81f7b/marshmallow_sqlalchemy-0.26.1-py2.py3-none-any.whl", hash = "sha256:ba7493eeb8669a3bf00d8f906b657feaa87a740ae9e4ecf829cfd6ddf763d276", size = 15639 },
+    { url = "https://files.pythonhosted.org/packages/c2/15/0c63bbbd7c21e44065ce7e198c0e515a98d2e37e5f5694d69595285dd67f/marshmallow_sqlalchemy-0.28.2-py2.py3-none-any.whl", hash = "sha256:c31b3bdf794de1d78c53e1c495502cbb3eeb06ed216869980c71d6159e7e9e66", size = 16095 },
 ]
 
 [[package]]
@@ -4142,7 +4026,7 @@ name = "methodtools"
 version = "0.4.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "wirerope", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "wirerope" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/13/3b/c21b74ac17befdf17b286494b02221b7a84affb1d410ff86e38ba0e14b13/methodtools-0.4.7.tar.gz", hash = "sha256:e213439dd64cfe60213f7015da6efe5dd4003fd89376db3baa09fe13ec2bb0ba", size = 3586 }
 wheels = [
@@ -4164,7 +4048,7 @@ version = "1.33.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
-    { name = "pyjwt", extra = ["crypto"], marker = "extra == 'extra-15-airflow-toolkit-airflow2' or extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "pyjwt", extra = ["crypto"] },
     { name = "requests" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d5/da/81acbe0c1fd7e9e4ec35f55dadeba9833a847b9a6ba2e2d1e4432da901dd/msal-1.33.0.tar.gz", hash = "sha256:836ad80faa3e25a7d71015c990ce61f704a87328b1e73bcbb0623a18cbf17510", size = 153801 }
@@ -4887,7 +4771,7 @@ wheels = [
 
 [package.optional-dependencies]
 email = [
-    { name = "email-validator", version = "2.3.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "email-validator", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 
 [[package]]
@@ -4988,7 +4872,7 @@ name = "pynacl"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "platform_python_implementation != 'PyPy'" },
+    { name = "cffi", marker = "platform_python_implementation != 'PyPy' or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/06/c6/a3124dee667a423f2c637cfd262a54d67d8ccf3e160f3c50f622a85b7723/pynacl-1.6.0.tar.gz", hash = "sha256:cb36deafe6e2bce3b286e5d1f3e1c246e0ccdb8808ddb4550bb2792f2df298f2", size = 3505641 }
 wheels = [
@@ -5134,20 +5018,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/87/c7/5e1547c44e31da50a460df93af11a535ace568ef89d7a811069ead340c4a/python-slugify-8.0.4.tar.gz", hash = "sha256:59202371d1d05b54a9e7720c5e038f928f45daaffe41dd10822f3907b937c856", size = 10921 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/62/02da182e544a51a5c3ccf4b03ab79df279f9c60c5e82d5e8bec7ca26ac11/python_slugify-8.0.4-py2.py3-none-any.whl", hash = "sha256:276540b79961052b66b7d116620b36518847f52d5fd9e3a70164fc8c50faa6b8", size = 10051 },
-]
-
-[[package]]
-name = "python3-saml"
-version = "1.16.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "isodate" },
-    { name = "lxml" },
-    { name = "xmlsec" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5d/98/6e0268c3a9893af3d4c5cf670183e0314cd6b5cb034a612d6a7cc5060df8/python3-saml-1.16.0.tar.gz", hash = "sha256:97c9669aecabc283c6e5fb4eb264f446b6e006f5267d01c9734f9d8bffdac133", size = 83468 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/07/14/49d9828443b58bd5cc80a454c91b0f867fbf36a24975d501945e6cb9e32f/python3_saml-1.16.0-py3-none-any.whl", hash = "sha256:20b97d11b04f01ee22e98f4a38242e2fea2e28fbc7fbc9bdd57cab5ac7fc2d0d", size = 76155 },
 ]
 
 [[package]]
@@ -5348,11 +5218,11 @@ name = "retryhttp"
 version = "1.3.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pydantic", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "requests", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "tenacity", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "types-requests", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "httpx", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pydantic", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "requests", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "tenacity", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "types-requests", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cb/b1/798afea3de35d0a7e9f682ac580d19c4f1d3701ab41b33afb72baf46556b/retryhttp-1.3.3.tar.gz", hash = "sha256:071a0296ac69640f9685cc96f9e259c155d327943cc2d15b827eea7577976178", size = 25191 }
 wheels = [
@@ -5402,9 +5272,9 @@ name = "rich-toolkit"
 version = "0.15.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "rich", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "click", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "rich", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/67/33/1a18839aaa8feef7983590c05c22c9c09d245ada6017d118325bbfcc7651/rich_toolkit-0.15.1.tar.gz", hash = "sha256:6f9630eb29f3843d19d48c3bd5706a086d36d62016687f9d0efa027ddc2dd08a", size = 115322 }
 wheels = [
@@ -5579,6 +5449,25 @@ wheels = [
 ]
 
 [[package]]
+name = "sagemaker-studio"
+version = "1.0.22"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "boto3" },
+    { name = "botocore" },
+    { name = "packaging" },
+    { name = "psutil" },
+    { name = "python-dateutil" },
+    { name = "requests" },
+    { name = "setuptools" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/59/b8/966b07accde241c70ef92ef7ad7c0350cfc49fdeff0704671f09c17742da/sagemaker_studio-1.0.22.tar.gz", hash = "sha256:a544f5d7e166cfb9444a4171793a6ab90dba4186a4b4f464f82b1e946df649c1", size = 493993 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/30/ffcaa340fe244f2963235b068747dc8e7746dd4134d971167459f3444c26/sagemaker_studio-1.0.22-py3-none-any.whl", hash = "sha256:ced8a96d653a0ff2330b8fe839d3d5379fae2047faaa6d8535c6541ff7b0f3bf", size = 287147 },
+]
+
+[[package]]
 name = "scramp"
 version = "1.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -5595,8 +5484,8 @@ name = "sentry-sdk"
 version = "2.42.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "certifi", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "urllib3", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "certifi", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "urllib3", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c9/b2/7481156cf42b7f66cffb371e504b7ace12b4f016b8872ffcf0873ae9534b/sentry_sdk-2.42.0.tar.gz", hash = "sha256:91c69c9372fb5fb4df0ac39456ccf7286f0428b3ee1cdd389f9dd36c04e0f5c9", size = 351242 }
 wheels = [
@@ -5743,7 +5632,7 @@ wheels = [
 
 [package.optional-dependencies]
 asyncio = [
-    { name = "greenlet", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "greenlet", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 
 [[package]]
@@ -5840,8 +5729,8 @@ name = "starlette"
 version = "0.48.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "anyio", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "anyio", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a7/a5/d6f429d43394057b67a6b5bbe6eae2f77a6bf7459d961fdb224bf206eee6/starlette-0.48.0.tar.gz", hash = "sha256:7e8cee469a8ab2352911528110ce9088fdc6a37d9876926e73da7ce4aa4c7a46", size = 2652949 }
 wheels = [
@@ -5853,7 +5742,7 @@ name = "structlog"
 version = "25.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'extra-15-airflow-toolkit-airflow3') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
+    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra != 'extra-15-airflow-toolkit-airflow2') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/79/b9/6e672db4fec07349e7a8a8172c1a6ae235c58679ca29c3f86a61b5e59ff3/structlog-25.4.0.tar.gz", hash = "sha256:186cd1b0a8ae762e29417095664adf1d6a31702160a46dacb7796ea82f7409e4", size = 1369138 }
 wheels = [
@@ -5865,7 +5754,7 @@ name = "svcs"
 version = "25.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "attrs", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "attrs", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/08/e1/2d56ec21820cae24a6215dc1d6a224167b0e24368bf53166551064742e0d/svcs-25.1.0.tar.gz", hash = "sha256:64dd74d0c4e8fee79a9ac7550a9d824670b228df390ba1911614e29b59b3f2c2", size = 714086 }
 wheels = [
@@ -5978,10 +5867,10 @@ name = "typer"
 version = "0.19.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "rich", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "shellingham", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "click", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "rich", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "shellingham", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typing-extensions", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/21/ca/950278884e2ca20547ff3eb109478c6baf6b8cf219318e6bc4f666fad8e8/typer-0.19.2.tar.gz", hash = "sha256:9ad824308ded0ad06cc716434705f691d4ee0bfd0fb081839d2e426860e7fdca", size = 104755 }
 wheels = [
@@ -6058,38 +5947,12 @@ wheels = [
 ]
 
 [[package]]
-name = "unicodecsv"
-version = "0.14.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6f/a4/691ab63b17505a26096608cc309960b5a6bdf39e4ba1a793d5f9b1a53270/unicodecsv-0.14.1.tar.gz", hash = "sha256:018c08037d48649a0412063ff4eda26eaa81eff1546dbffa51fa5293276ff7fc", size = 10267 }
-
-[[package]]
-name = "universal-pathlib"
-version = "0.1.4"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
-dependencies = [
-    { name = "fsspec", marker = "extra == 'extra-15-airflow-toolkit-airflow2'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/3a/569483e8790a1673f3dfbb51bdf02803707184f4a47c9ac834e5f943c56b/universal_pathlib-0.1.4.tar.gz", hash = "sha256:82e5d86d16a27e0ea1adc7d88acbcba9d02d5a45488163174f96d9ac289db2e4", size = 131349 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ed/6e/b726049020b66bf69b1b695b75a3d585e28f444b7259fab9be193de97b2c/universal_pathlib-0.1.4-py3-none-any.whl", hash = "sha256:f99186cf950bde1262de9a590bb019613ef84f9fabd9f276e8b019722201943a", size = 20558 },
-]
-
-[[package]]
 name = "universal-pathlib"
 version = "0.3.4"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-    "python_full_version < '3.11'",
-]
 dependencies = [
-    { name = "fsspec", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pathlib-abc", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "fsspec" },
+    { name = "pathlib-abc" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/79/15/907728d15ebc125616eb275245d1f1ba0d5a66150eea74bea68651f22d87/universal_pathlib-0.3.4.tar.gz", hash = "sha256:8472df61ea931eb7e8158abf5a12ec9c45103dc58716c0103cf5e88712fa357a", size = 203284 }
 wheels = [
@@ -6128,9 +5991,9 @@ name = "uvicorn"
 version = "0.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "h11", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra == 'extra-15-airflow-toolkit-airflow3') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
+    { name = "click", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "h11", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "typing-extensions", marker = "(python_full_version < '3.11' and extra != 'extra-15-airflow-toolkit-airflow2') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/71/57/1616c8274c3442d802621abf5deb230771c7a0fec9414cb6763900eb3868/uvicorn-0.37.0.tar.gz", hash = "sha256:4115c8add6d3fd536c8ee77f0e14a7fd2ebba939fed9b02583a97f80648f9e13", size = 80367 }
 wheels = [
@@ -6139,13 +6002,13 @@ wheels = [
 
 [package.optional-dependencies]
 standard = [
-    { name = "colorama", marker = "(sys_platform == 'win32' and extra == 'extra-15-airflow-toolkit-airflow3') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
-    { name = "httptools", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "python-dotenv", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "pyyaml", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "uvloop", marker = "(platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32' and extra == 'extra-15-airflow-toolkit-airflow3') or (platform_python_implementation == 'PyPy' and extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3') or (sys_platform == 'cygwin' and extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3') or (sys_platform == 'win32' and extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
-    { name = "watchfiles", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
-    { name = "websockets", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "colorama", marker = "(sys_platform == 'win32' and extra != 'extra-15-airflow-toolkit-airflow2') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
+    { name = "httptools", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "python-dotenv", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "pyyaml", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "uvloop", marker = "(platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32' and extra != 'extra-15-airflow-toolkit-airflow2') or (extra == 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
+    { name = "watchfiles", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
+    { name = "websockets", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 
 [[package]]
@@ -6188,7 +6051,7 @@ name = "watchfiles"
 version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "anyio", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "anyio", marker = "extra == 'extra-15-airflow-toolkit-airflow3' or extra != 'extra-15-airflow-toolkit-airflow2'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c2/c9/8869df9b2a2d6c59d79220a4db37679e74f807c559ffe5265e08b227a210/watchfiles-1.1.1.tar.gz", hash = "sha256:a173cb5c16c4f40ab19cecf48a534c409f7ea983ab8fed0741304a1c0a31b3f2", size = 94440 }
 wheels = [
@@ -6302,7 +6165,7 @@ name = "wirerope"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "six", marker = "extra == 'extra-15-airflow-toolkit-airflow3'" },
+    { name = "six" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/8e/f1/d0a4c936ba77eb1050da6ea5e7cd80aa36add343d9e5f7f9cf79a206c5b8/wirerope-1.0.0.tar.gz", hash = "sha256:7da8bb6feeff9dd939bd7141ef0dc392674e43ba662e20909d6729db81a7c8d0", size = 10930 }
 wheels = [
@@ -6348,35 +6211,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/01/e4/633d080897e769ed5712dcfad626e55dbd6cf45db0ff4d9884315c6a82da/wtforms-3.2.1.tar.gz", hash = "sha256:df3e6b70f3192e92623128123ec8dca3067df9cfadd43d59681e210cfb8d4682", size = 137801 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/08/c9/2088fb5645cd289c99ebe0d4cdcc723922a1d8e1beaefb0f6f76dff9b21c/wtforms-3.2.1-py3-none-any.whl", hash = "sha256:583bad77ba1dd7286463f21e11aa3043ca4869d03575921d1a1698d0715e0fd4", size = 152454 },
-]
-
-[[package]]
-name = "xmlsec"
-version = "1.3.16"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "lxml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ed/52/b025fe78a178d9eaffa1c77a4a73b20072e27d4679200cee76475034b399/xmlsec-1.3.16.tar.gz", hash = "sha256:2b6c70544c6d1d4ca006aaa314958e0ef3514dc81fffde1b23f2ec41a5791f9d", size = 114202 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/69/cc/4aaf7affcaf2028a59e39b37eb81b176ed1d37ef73708e0e389229cf893e/xmlsec-1.3.16-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:a34ff8241eef1a98bc8105dad8909c00501aa8c045613cc55da75784d0a77a7a", size = 3424372 },
-    { url = "https://files.pythonhosted.org/packages/2c/ef/e6884555da3ae0451e46122acd9b18a2e6d06381ec19ce79a4ab691a9b1b/xmlsec-1.3.16-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:7347748781c1a58d05e25a804e706b5a232cdac658ffd477866db109f32f3bf2", size = 3829928 },
-    { url = "https://files.pythonhosted.org/packages/73/8e/81c19062dafcb9e9e88057377a517565159862f808b713723acc1572744e/xmlsec-1.3.16-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fda5206b7c94b6d9552d20493d57316cb165950f2501164c4ea682cd63fadeab", size = 4361865 },
-    { url = "https://files.pythonhosted.org/packages/36/a6/d4388f354b319b58fd241531fefbce913a2d738a08880d2265da7f1f8d29/xmlsec-1.3.16-cp310-cp310-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:3343e37fc86a823ed4cb9272e548b27aeea964603c05d6d6d82f797d4f9d2826", size = 3784777 },
-    { url = "https://files.pythonhosted.org/packages/de/21/306398bf45e9ba1463717c081fcb231df01802a2688b92666a5a77d55a90/xmlsec-1.3.16-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3e0942d08284b9343e42126939ad67ec72348dff922fbdc328593beea37a9ec3", size = 4088367 },
-    { url = "https://files.pythonhosted.org/packages/13/89/dd5af621d888399cf3846f5886bdfd24793ffbfb9e3ce70815e294eafced/xmlsec-1.3.16-cp310-cp310-musllinux_1_2_aarch64.whl", hash = "sha256:9ec5f9e57b18d4de372235b631cab6fb4f30e58c5f9d72999b687cf55019b588", size = 4395469 },
-    { url = "https://files.pythonhosted.org/packages/87/35/62f72c355cdbc237e4c6e09d4d950f435ec60c73fa9be9673834bef1d652/xmlsec-1.3.16-cp310-cp310-musllinux_1_2_x86_64.whl", hash = "sha256:b1321897c417ae7d633063c60742c722dad20797e7d5821438c2955ca5eafe92", size = 4144814 },
-    { url = "https://files.pythonhosted.org/packages/8d/6e/c20cf5c54e57848cb6dca1bf446a48d9a37c90cc1ba025b98c9c1ac2dd1c/xmlsec-1.3.16-cp310-cp310-win32.whl", hash = "sha256:ab161b770addd44c04c7f6cdcfa6409e72ce60fde0356a851c678ed60bbb53e9", size = 2154970 },
-    { url = "https://files.pythonhosted.org/packages/d8/95/6f043e5da97faebe0af378012fff3c051f9a2a81953e3d8e8a67bdc8124c/xmlsec-1.3.16-cp310-cp310-win_amd64.whl", hash = "sha256:1c616f4a4c956ddf40dbcad45b4e1cee0e1efe2d1dd47ded483e6d89161b484d", size = 2446061 },
-    { url = "https://files.pythonhosted.org/packages/d1/72/1a8ba35cf2a3d9747e0083b7f8fd7818ab689b9f3c536f45260adf6f0e57/xmlsec-1.3.16-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:837fe04902341e6cb07fd652b73a40d776fef68842a8f8a6987d555d3244557f", size = 3424373 },
-    { url = "https://files.pythonhosted.org/packages/53/b3/e6cd6731b425708bb70f299450e948e0db176afb26fa3e6265e80f1b7f49/xmlsec-1.3.16-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:0cc4c475a30364fc0db5b761e71add9212a5cc41a06399ee167249e7cfc8887f", size = 3829930 },
-    { url = "https://files.pythonhosted.org/packages/99/80/744b7a8ffc69516d3d2511b5a6f1b6d1810bedf2d4a1d04eae7ab1a09584/xmlsec-1.3.16-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3fc4bef7772391710fd4f7abe552f44b1b51bedc0d6eaa14311c353f6aac5830", size = 4365323 },
-    { url = "https://files.pythonhosted.org/packages/b7/fa/9d9ada4866c5e7f123db82429d7de19d7b08656a63f665fa722df38a985b/xmlsec-1.3.16-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c130ad630580da10656002ab577f307dba92bdbe285cea9aedd633847a28be91", size = 3788653 },
-    { url = "https://files.pythonhosted.org/packages/53/24/621e7a4bb6c06d208de10b4ca4c95e892becc908e8309dea9c9533697553/xmlsec-1.3.16-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:df55939743f48b1802a2036670f5004344fa71e787a8c395b4adc4f17beceb5f", size = 4092033 },
-    { url = "https://files.pythonhosted.org/packages/60/b0/13e5c372f0b1c2d30a04648a92087d770245ab9ec5d42f4060dacbd20f1a/xmlsec-1.3.16-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:f8087d866c0997fd8145a37e0a60bfb7328af13a4cd424467f10b1b51b2f58d6", size = 4397501 },
-    { url = "https://files.pythonhosted.org/packages/31/c6/66f780e8821cac285c025ac37af93fdda3c93871f77bf5408742a3d345b5/xmlsec-1.3.16-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:6bf07d5add2bfa47245c6ffbdc2f8646160e6f68a519f8723800e743acbdc300", size = 4147595 },
-    { url = "https://files.pythonhosted.org/packages/ae/c8/f00be7a66f05fed7f59a949174753ef2907d0b4d11210c8c67588809564f/xmlsec-1.3.16-cp311-cp311-win32.whl", hash = "sha256:ab5f6293e101e45f53ccf6c46a7a54b39aecb8610a7688d9ddbb8879bdba7812", size = 2154971 },
-    { url = "https://files.pythonhosted.org/packages/26/3e/cca8b8573f7a3cac6ca1411a7a751b166995c6e5d9b4644a87f4ef3095a8/xmlsec-1.3.16-cp311-cp311-win_amd64.whl", hash = "sha256:8c209841a9e0e34e6542d92012488db37422e5a50fa8d94ea899c3d138d619e0", size = 2446063 },
 ]
 
 [[package]]

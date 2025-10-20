@@ -8,7 +8,7 @@ Internally it inspects the installed Airflow version and redirects to the correc
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 
 def _af_major() -> int:
@@ -25,39 +25,52 @@ def _af_major() -> int:
 _M = _af_major()
 
 if _M >= 3:
-    from airflow.operators.python import get_current_context as _get_current_context
-    from airflow.sdk import Connection as _Connection
-    from airflow.sdk.BaseHook import BaseHook as _BaseHook
-    from airflow.sdk.core.baseoperator import BaseOperator as _BaseOperator
-    from airflow.sdk.core.basesensoroperator import (
+    from airflow.sdk.bases.hook import BaseHook as _BaseHook
+    from airflow.providers.standard.hooks.filesystem import FSHook as _FSHook
+    from airflow.models.connection import Connection as _Connection
+    from airflow.sdk.bases.notifier import BaseNotifier as _BaseNotifier
+    from airflow.sdk import BaseOperator as _BaseOperator
+    from airflow.sdk import (
         BaseSensorOperator as _BaseSensorOperator,
     )
     from airflow.sdk.definitions.context import Context as _Context
-    from airflow.sdk.definitions.trigger_rule import TriggerRule as _TriggerRule
+    from airflow.providers.standard.operators.python import (
+        PythonOperator as _PythonOperator,
+    )
+    from airflow.providers.standard.operators.bash import BashOperator as _BashOperator
+    from airflow.sdk import task as _branch_task
+
+    _branch_task = _branch_task.branch
+
 else:
     from airflow.hooks.base import BaseHook as _BaseHook
+    from airflow.decorators import branch_task as _branch_task
+    from airflow.hooks.filesystem import FSHook as _FSHook
+    from airflow.operators.python import PythonOperator as _PythonOperator
+    from airflow.operators.bash import BashOperator as _BashOperator
+    from airflow.notifications.basenotifier import BaseNotifier as _BaseNotifier
     from airflow.models.baseoperator import BaseOperator as _BaseOperator
-    from airflow.models.connection import Connection as _Connection  # noqa: F401
-    from airflow.operators.python import get_current_context as _get_current_context
+    from airflow.models.connection import Connection as _Connection
     from airflow.sensors.base import BaseSensorOperator as _BaseSensorOperator
     from airflow.utils.context import Context as _Context
-    from airflow.utils.trigger_rule import TriggerRule as _TriggerRule
 
-
+BaseHook = _BaseHook
 BaseOperator = _BaseOperator
 BaseSensorOperator = _BaseSensorOperator
-BaseHook = _BaseHook
+FSHook = _FSHook
 Context = _Context
 Connection = _Connection
-TriggerRule = _TriggerRule
-get_current_context: Callable[[], _Context] = _get_current_context
+BaseNotifier = _BaseNotifier
+PythonOperator = _PythonOperator
+BashOperator = _BashOperator
+branch_task = _branch_task
 
 is_airflow3 = _M >= 3
 
 # Improve editor typing without importing both variants at runtime
 if TYPE_CHECKING:
     try:
-        from airflow.sdk.core.baseoperator import BaseOperator as _TBase
+        from airflow.sdk import BaseOperator as _TBase
     except Exception:
         from airflow.models.baseoperator import BaseOperator as _TBase
     BaseOperator = _TBase

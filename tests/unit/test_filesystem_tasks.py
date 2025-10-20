@@ -1,7 +1,7 @@
 import logging
 
 import pendulum
-from airflow.operators.python import PythonOperator
+from airflow_toolkit._compact.airflow_shim import PythonOperator
 from airflow.utils.state import TaskInstanceState as TIS
 
 from airflow_toolkit.providers.filesystem.tasks import branch_filesystem_check_task
