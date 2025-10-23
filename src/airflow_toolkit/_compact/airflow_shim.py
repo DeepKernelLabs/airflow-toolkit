@@ -25,7 +25,8 @@ def _af_major() -> int:
 _M = _af_major()
 
 if _M >= 3:
-    from airflow.sdk.bases.hook import BaseHook as _BaseHook
+    from airflow.sdk import DAG as _DAG
+    from airflow.sdk import BaseHook as _BaseHook
     from airflow.providers.standard.hooks.filesystem import FSHook as _FSHook
     from airflow.models.connection import Connection as _Connection
     from airflow.sdk.bases.notifier import BaseNotifier as _BaseNotifier
@@ -43,6 +44,7 @@ if _M >= 3:
     _branch_task = _branch_task.branch
 
 else:
+    from airflow import DAG as _DAG
     from airflow.hooks.base import BaseHook as _BaseHook
     from airflow.decorators import branch_task as _branch_task
     from airflow.hooks.filesystem import FSHook as _FSHook
@@ -54,6 +56,7 @@ else:
     from airflow.sensors.base import BaseSensorOperator as _BaseSensorOperator
     from airflow.utils.context import Context as _Context
 
+DAG = _DAG
 BaseHook = _BaseHook
 BaseOperator = _BaseOperator
 BaseSensorOperator = _BaseSensorOperator
