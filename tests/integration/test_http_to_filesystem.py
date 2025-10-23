@@ -36,8 +36,7 @@ def test_http_to_data_lake(dag, s3_bucket, s3_resource, monkeypatch):
             jmespath_expression="data[:2].{id: id, email: email}",
         )
     date = pendulum.datetime(2023, 10, 1)
-    # dag.test(logical_date=date) if is_airflow3 else dag.test(execution_date=date)
-    dag.test(logical_date=date)
+    dag.test(execution_date=date)
 
     content = (
         s3_resource.Object(s3_bucket, "source1/entity1/2023-10-01/part0001.jsonl")

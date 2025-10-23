@@ -2,11 +2,11 @@ import textwrap
 from pathlib import Path
 import numpy as np
 import pendulum
-from airflow.hooks.base import BaseHook
 
 from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import (
     FilesystemToDatabaseOperator,
 )
+from airflow_toolkit._compact.airflow_shim import BaseHook
 
 
 def _write_csv_for_ds(
