@@ -11,8 +11,10 @@ from airflow_toolkit.exceptions import ApiResponseTypeError
 from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import (
     HttpToFilesystem,
 )
+from airflow_toolkit._compact.airflow_shim import is_airflow3
 
 
+@pytest.mark.skipif(is_airflow3, reason="Not supported for Airflow 3+, currently")
 def test_http_to_data_lake(dag, s3_bucket, s3_resource, monkeypatch):
     """This test uses the mock API https://reqres.in/"""
     monkeypatch.setenv(
@@ -248,6 +250,7 @@ def reqres_pagination_function(response):
         return {"data": {"page": current_page + 1}}
 
 
+@pytest.mark.skipif(is_airflow3, reason="Not supported for Airflow 3+, currently")
 def test_http_to_datalake_pagination_jsonl(dag, s3_bucket, s3_resource, monkeypatch):
     """This test uses the mock API https://reqres.in/"""
     monkeypatch.setenv(
@@ -304,6 +307,7 @@ def test_http_to_datalake_pagination_jsonl(dag, s3_bucket, s3_resource, monkeypa
     )
 
 
+@pytest.mark.skipif(is_airflow3, reason="Not supported for Airflow 3+, currently")
 def test_http_to_datalake_pagination_json(dag, s3_bucket, s3_resource, monkeypatch):
     """This test uses the mock API https://reqres.in/"""
     monkeypatch.setenv(
@@ -348,6 +352,7 @@ def test_http_to_datalake_pagination_json(dag, s3_bucket, s3_resource, monkeypat
     assert content_part2 == """{"page": 2, "total": 12}"""
 
 
+@pytest.mark.skipif(is_airflow3, reason="Not supported for Airflow 3+, currently")
 def test_http_to_data_lake_check_one_page_data_is_duplicated(
     dag, s3_bucket, s3_resource, monkeypatch
 ):
@@ -386,6 +391,7 @@ def test_http_to_data_lake_check_one_page_data_is_duplicated(
         )
 
 
+@pytest.mark.skipif(is_airflow3, reason="Not supported for Airflow 3+, currently")
 def test_http_to_data_lake_with_success_file(dag, s3_bucket, s3_resource, monkeypatch):
     """This test uses the mock API https://reqres.in/"""
     monkeypatch.setenv(
@@ -444,6 +450,7 @@ def transform_from_json_to_csv(data):
         raise ApiResponseTypeError(f"Error transforming the data: {e}")
 
 
+@pytest.mark.skipif(is_airflow3, reason="Not supported for Airflow 3+, currently")
 def test_http_to_filesystem_with_transformation(
     dag, s3_bucket, s3_resource, monkeypatch
 ):
@@ -499,6 +506,7 @@ def transform_from_json_to_csv_with_columns_change(data, data_transformation_kwa
         raise ApiResponseTypeError(f"Error transforming the data: {e}")
 
 
+@pytest.mark.skipif(is_airflow3, reason="Not supported for Airflow 3+, currently")
 def test_http_to_filesystem_with_transformation_and_extra_args(
     dag, s3_bucket, s3_resource, monkeypatch
 ):
