@@ -2,11 +2,16 @@ import textwrap
 from pathlib import Path
 import numpy as np
 import pendulum
+import pytest
 
 from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import (
     FilesystemToDatabaseOperator,
 )
-from airflow_toolkit._compact.airflow_shim import BaseHook
+from airflow_toolkit._compact.airflow_shim import BaseHook, is_airflow3
+
+pytestmark = pytest.mark.skipif(
+    is_airflow3, reason="Not supported for Airflow 3+, currently"
+)
 
 
 def _write_csv_for_ds(

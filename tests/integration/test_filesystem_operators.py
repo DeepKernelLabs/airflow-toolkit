@@ -2,10 +2,14 @@ import pendulum
 import pytest
 from botocore.exceptions import ClientError
 
-from airflow_toolkit._compact.airflow_shim import PythonOperator
+from airflow_toolkit._compact.airflow_shim import PythonOperator, is_airflow3
 from airflow_toolkit.providers.filesystem.operators.filesystem import (
     FilesystemCheckOperator,
     FilesystemDeleteOperator,
+)
+
+pytestmark = pytest.mark.skipif(
+    is_airflow3, reason="Not supported for Airflow 3+, currently"
 )
 
 
