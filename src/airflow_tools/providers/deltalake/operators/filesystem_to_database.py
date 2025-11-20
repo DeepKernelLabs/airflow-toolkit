@@ -99,6 +99,8 @@ class FilesystemToDatabaseOperator(BaseOperator):
             raw_content = io.BytesIO(filesystem.read(blob_path))
 
             df = self.raw_content_to_pandas(path_or_buf=raw_content)
+
+            self._check_and_fix_null_characters(df)
             
             self._check_and_fix_column_differences(df, self.db_table, engine)   
 
@@ -123,7 +125,12 @@ class FilesystemToDatabaseOperator(BaseOperator):
                 if_exists=self.table_aggregation_type,
                 index=False,
             )
-            
+
+    def _check_and_fix_null_characters(self, df: pd.DataFrame):
+        for column in df.select_dtypes(include=['object', 'string']).columns:
+            if df[column].astype(str).str.contains('\x00').any():
+                df[column] = df[column].astype(str).str.replace('\x00', '', regex=False)
+
     def _check_and_fix_column_differences(self, df: pd.DataFrame, table_name: str, engine: engine.Engine):
         """
         This method checks if the columns in the dataframe are the same as the
