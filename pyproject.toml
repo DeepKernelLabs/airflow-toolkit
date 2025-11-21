@@ -3,7 +3,7 @@ name = "airflow-toolkit"
 version = "0.13.3"
 description = ""
 authors = [{ name = "Biel Llobera", email = "biel_llobera@dkl.digital" }]
-requires-python = ">=3.10,<3.12"
+requires-python = ">=3.10,<3.13"
 readme = "README.md"
 dependencies = [
     "boto3>=1.34.8,<2",
@@ -108,7 +108,7 @@ profile = "black"
 skip-string-normalization = true
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 exclude = "^build/"
 allow_redefinition = true
 ignore_missing_imports = true
