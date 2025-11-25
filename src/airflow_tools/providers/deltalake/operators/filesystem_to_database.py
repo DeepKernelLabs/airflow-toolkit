@@ -83,9 +83,22 @@ class FilesystemToDatabaseOperator(BaseOperator):
         )
 
         logger.info(f'Create SQLAlchemy engine with connection_id {self.database_conn_id}')
+        ##########################################################################################
+        # We detected that with certain unusual characters in the password, the sqlalchemy_url   #
+        # property did not work perfectly, which is why we decided to avoid it and manually      #
+        # create the connection url here, correctly escaping the password.                       #
+        ##########################################################################################
         conn = BaseHook.get_connection(self.database_conn_id)
-        password_encoded = urllib.parse.quote_plus(conn.password)
-        engine = create_engine(f'postgresql://{conn.login}:{password_encoded}@{conn.host}:{conn.port}/{conn.schema}')
+        password_encoded = urllib.parse.quote_plus(conn.password) if conn.password else ''
+        database_name = conn.schema if conn.schema else ''
+        if conn.host:
+            auth_part = f"{conn.login}:{password_encoded}@" if conn.login or password_encoded else ""
+            port_part = f":{conn.port}" if conn.port else ""
+            connection_url = f'{conn.conn_type}://{auth_part}{conn.host}{port_part}/{database_name}'
+        else:
+            connection_url = f'{conn.conn_type}://{database_name}'
+        engine = create_engine(connection_url)
+        ##########################################################################################
 
         for blob_path in filesystem.list_files(prefix=self.filesystem_path):
 
