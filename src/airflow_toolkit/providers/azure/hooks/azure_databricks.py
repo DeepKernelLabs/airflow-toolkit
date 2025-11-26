@@ -1,3 +1,4 @@
+from typing import Optional
 from functools import cached_property
 
 from airflow.providers.common.sql.hooks.sql import DbApiHook
@@ -31,7 +32,7 @@ class AzureDatabricksSqlHook(DbApiHook):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.azure_databricks_sql_conn_id = azure_databricks_sql_conn_id
-        self._sql_conn = None
+        self._sql_conn: Optional[Connection] = None
 
     @cached_property
     def azure_databricks_sql_conn(self) -> Connection:
@@ -71,7 +72,7 @@ class AzureDatabricksVolumeHook(BaseHook):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.azure_databricks_volume_conn_id = azure_databricks_volume_conn_id
-        self.w = None
+        self.w: Optional[Connection] = None
 
     @cached_property
     def azure_databricks_volume_conn(self) -> Connection:

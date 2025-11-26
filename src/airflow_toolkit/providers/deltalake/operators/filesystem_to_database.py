@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import logging
 import sys
+import urllib.parse
 from collections.abc import Mapping
 from typing import Any
 
@@ -17,11 +18,10 @@ from sqlalchemy import (
     inspect,
     text,
 )
-from sqlalchemy.engine import URL, Engine
+from sqlalchemy.engine import Engine
 
 from airflow_toolkit._compact.airflow_shim import (
     BaseOperator,
-    Connection,
     Context,
     BaseHook,
 )
@@ -89,13 +89,9 @@ class FilesystemToDatabaseOperator(BaseOperator):
         self.db_table = db_table
         self.db_schema = db_schema
         self.source_format = source_format
-        self.source_format_options: dict[str, Any] = (
-            dict(source_format_options) if source_format_options is not None else {}
-        )
+        self.source_format_options = source_format_options
         self.table_aggregation_type = table_aggregation_type
-        self.metadata: dict[str, str] = (
-            dict(metadata) if metadata is not None else {"_DS": "{{ ds }}"}
-        )
+        self.metadata = metadata or {"_DS": "{{ ds }}"}
         self.metadata_columns_in_uppercase = metadata_columns_in_uppercase
         self.include_source_path = include_source_path
 
@@ -104,52 +100,39 @@ class FilesystemToDatabaseOperator(BaseOperator):
         filesystem: FilesystemProtocol = FilesystemFactory.get_data_lake_filesystem(
             connection=BaseHook.get_connection(self.filesystem_conn_id),
         )
+
         logger.info(
             f"Create SQLAlchemy engine with connection_id {self.database_conn_id}"
         )
-        conn: Connection = BaseHook.get_connection(self.database_conn_id)
-
-        if conn.conn_type == "sqlite":
-            # In your fixture, the DB path is stored in `host`
-            url = URL.create(
-                "sqlite",
-                database=conn.host,  # absolute path, e.g. /tmp/pytest-.../test_db.sqlite
-            )
+        ##################################################################################
+        # WWe detected that with certain unusual characters in the password, the URI for #
+        # Postgres did not work perfectly, so we decided to avoid it and manually create #
+        # the connection URL here, correctly escaping the password.                      #
+        ##################################################################################
+        conn = BaseHook.get_connection(self.database_conn_id)
+        if conn.conn_type == "postgres":
+            password_encoded = urllib.parse.quote_plus(conn.password)
+            connection_url = f"postgresql://{conn.login}:{password_encoded}@{conn.host}:{conn.port}/{conn.schema}"
         else:
-            # Generic case (Postgres, MySQL, etc.)
-            url = URL.create(
-                conn.conn_type,  # e.g. "postgresql"
-                username=conn.login,
-                password=conn.password,  # may be None → handled safely
-                host=conn.host,
-                port=conn.port,
-                database=conn.schema,
-            )
+            connection_url = conn.get_uri()
+        engine: Engine = create_engine(connection_url)
+        ##################################################################################
 
-        engine: Engine = create_engine(url)
-
-        # TODO: check prefix argument in filesystem.list_files
-        for blob_path in filesystem.list_files(""):
-            if not blob_path.startswith(self.filesystem_path):
+        for blob_path in filesystem.list_files(prefix=self.filesystem_path):
+            if not blob_path.endswith(
+                (f".{self.source_format}", f".{self.source_format}.gz")
+            ):
                 logger.warning(
-                    f"Blob {blob_path} is not under the expected prefix {self.filesystem_path}. Skipping..."
+                    f"Blob {blob_path} is not in the right format. Skipping..."
                 )
                 continue
-
-            # Check the file extension is one of accepted,
-            # TODO: make it extensible for all format we accept
-            # if not blob_path.endswith(
-            #     (f".{self.source_format}", f".{self.source_format}.gz")
-            # ):
-            #     logger.warning(
-            #         f"Blob {blob_path} is not in the right format. Skipping..."
-            #     )
-            #     continue
 
             logger.info(f"Read file {blob_path} and convert to pandas")
             raw_content = io.BytesIO(filesystem.read(blob_path))
 
             df = self.raw_content_to_pandas(path_or_buf=raw_content)
+
+            self._check_and_fix_null_characters(df)
 
             self._check_and_fix_column_differences(df, self.db_table, engine)
 
@@ -180,6 +163,11 @@ class FilesystemToDatabaseOperator(BaseOperator):
                 if_exists=self.table_aggregation_type,
                 index=False,
             )
+
+    def _check_and_fix_null_characters(self, df: pd.DataFrame):
+        for column in df.select_dtypes(include=["object", "string"]).columns:
+            if df[column].astype(str).str.contains("\x00").any():
+                df[column] = df[column].astype(str).str.replace("\x00", "", regex=False)
 
     def _check_and_fix_column_differences(
         self, df: pd.DataFrame, table_name: str, engine: Engine
@@ -239,7 +227,7 @@ class FilesystemToDatabaseOperator(BaseOperator):
     def raw_content_to_pandas(
         self, path_or_buf: str | bytes | io.StringIO | io.BytesIO
     ) -> pd.DataFrame:
-        options: dict[str, Any] = dict(self.source_format_options)
+        options: dict[str, Any] = dict(self.source_format_options or {})
 
         match self.source_format:
             case "csv":

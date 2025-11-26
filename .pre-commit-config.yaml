@@ -22,7 +22,7 @@ repos:
       files: ^src/
       args:
         # - --strict
-        - --python-version=3.11
+        - --python-version=3.12
         - --warn-unused-ignores
         - --warn-redundant-casts
       additional_dependencies:
