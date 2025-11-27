@@ -5,6 +5,7 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -15,53 +16,35 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.11'
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-      - name: Configure Poetry
-        run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project false
-      - uses: chartboost/ruff-action@v1
-        with:
-          args: check --fix -e --no-cache
-      - name: Set up cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
-      - name: Install dependencies
-        run: |
-          poetry install
-      - uses: reviewdog/action-suggester@v1
-        with:
-          tool_name: ruff
-      - uses: tsuyoshicho/action-mypy@v3
-        with:
-          level: warning
-          setup_command: poetry add mypy
-          execute_command: poetry run mypy
+          version: "0.8.18"
+          python-version: "3.11"
+          enable-cache: true
+
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=src" >> $GITHUB_ENV
+
+      # - name: Install uv manually
+      #   run: |
+      #     curl -LsSf https://astral.sh/uv/install.sh | sh
+      #     export PATH="$HOME/.local/bin:$PATH"
+      #     uv --version
+
+      - name: Install dependencies (uv)
+        run: uv sync --locked --dev
+
+      - name: Run pre-commit (ruff + mypy)
+        run: uv run pre-commit run --all-files
 
   test:
     runs-on: ubuntu-24.04
 
     strategy:
       matrix:
-        PYTHON_VERSION: ['3.10', '3.11']
-
-    services:
-      s3mock:
-        image: adobe/s3mock:3.1.0
-        env:
-          initialBuckets: data_lake
-        ports:
-          - 9090:9090
+        PYTHON_VERSION: ['3.11']
 
     env:
       AIRFLOW_CONN_DATA_LAKE_TEST: '{"conn_type": "aws", "extra": {"endpoint_url": "http://localhost:9090"}}'
@@ -72,39 +55,52 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
       TEST_BUCKET: data_lake
       S3_ENDPOINT_URL: http://localhost:9090
+      AWS_S3_ADDRESSING_STYLE: path
+      AWS_USE_EXPECT_HEADER: false
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
+
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=src" >> $GITHUB_ENV
+
+      # - name: Install uv manually
+      #   run: |
+      #     curl -LsSf https://astral.sh/uv/install.sh | sh
+      #     export PATH="$HOME/.local/bin:$PATH"
+      #     uv --version
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: ${{ matrix.PYTHON_VERSION}}
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-      - name: Configure Poetry
-        run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project false
-      - name: Set up cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
-      - name: Install dependencies
-        run: |
-          poetry install
-      - name: set pythonpath
-        run: |
-          echo "PYTHONPATH=src" >> $GITHUB_ENV
+          version: "0.8.18"
+          python-version: ${{ matrix.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Install dependencies (uv)
+        run: uv sync --locked --dev
+
       - name: Initialize database
-        run: |
-          poetry run airflow db init
+        run: uv run airflow db init
+
+      - name: Start S3/Mock server
+        run: docker run -d --name test-s3mock --rm -p 9090:9090 -e initialBuckets=data_lake -e debug=true -t adobe/s3mock
+
       - name: Start SFTP server
-        run: |
-          docker run -p 2222:22 -d atmoz/sftp test_user:pass:::root_folder
+        # run: docker start test-sftp
+        run: docker run -p 2222:22 -d atmoz/sftp test_user:pass:::root_folder
+
       - name: Run tests with pytest
-        run: |
-          poetry run pytest tests/ --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+        run: >
+          uv run pytest  --tb=short tests/
+          --doctest-modules
+          --junitxml=junit/test-results.xml
+          --cov=src
+          --cov-report=xml
+          --cov-report=html
+      - name: Stop S3/Mock server
+        if: always()
+        run: docker stop test-s3mock || true
+      - name: Stop SFTP server
+        if: always()
+        run: docker stop test-sftp || true
