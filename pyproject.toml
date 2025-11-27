@@ -108,7 +108,7 @@ profile = "black"
 skip-string-normalization = true
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 exclude = "^build/"
 allow_redefinition = true
 ignore_missing_imports = true
