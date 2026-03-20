@@ -68,7 +68,7 @@ def test_source_file_to_database(
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path=str(folder),
+            filesystem_path="/",
             db_table="test_table",
             task_id="filesystem_to_database_test",
             metadata={
@@ -136,7 +136,7 @@ def test_source_file_with_less_columns_that_database(
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path=str(folder),
+            filesystem_path="/",
             db_table="test_csv_with_less_columns_that_database",
             task_id="filesystem_to_database_test",
             metadata={"_DS": "{{ ds }}"},
@@ -192,7 +192,7 @@ def test_source_file_with_more_columns_than_database(
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path=str(folder),
+            filesystem_path="/",
             db_table="test_csv_with_more_columns_than_database",
             task_id="filesystem_to_database_test",
             metadata={"_DS": "{{ ds }}"},
@@ -247,7 +247,7 @@ def test_source_file_and_database_with_different_columns(
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path=str(folder),
+            filesystem_path="/",
             db_table="test_csv_with_more_columns_than_database",
             task_id="filesystem_to_database_test",
             metadata={"_DS": "{{ ds }}"},
