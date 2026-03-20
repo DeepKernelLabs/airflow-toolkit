@@ -26,10 +26,14 @@ jobs:
         run: uv build
 
       - name: Smoke test (wheel import)
-        run: uv run --isolated --no-project --with "dist/*.whl[airflow3]" python -c "import airflow_toolkit; print('ok')"
+        run: |
+          WHL=$(ls dist/*.whl | head -1)
+          uv run --isolated --no-project --with "${WHL}[airflow3]" python -c "import airflow_toolkit; print('ok')"
 
       - name: Smoke test (sdist import)
-        run: uv run --isolated --no-project --with "dist/*.tar.gz[airflow3]" python -c "import airflow_toolkit; print('ok')"
+        run: |
+          SDIST=$(ls dist/*.tar.gz | head -1)
+          uv run --isolated --no-project --with "${SDIST}[airflow3]" python -c "import airflow_toolkit; print('ok')"
 
       - name: Publish to PyPI
         run: uv publish
