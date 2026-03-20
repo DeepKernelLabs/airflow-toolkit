@@ -2,14 +2,10 @@ import pendulum
 import pytest
 from botocore.exceptions import ClientError
 
-from airflow_toolkit._compact.airflow_shim import PythonOperator, is_airflow3
+from airflow_toolkit._compact.airflow_shim import PythonOperator, run_dag
 from airflow_toolkit.providers.data_lake.operators.data_lake import (
     DataLakeCheckOperator,
     DataLakeDeleteOperator,
-)
-
-pytestmark = pytest.mark.skipif(
-    is_airflow3, reason="Not supported for Airflow 3+, currently"
 )
 
 
@@ -30,7 +26,7 @@ def test_data_lake_delete_operator(dag, s3_bucket, s3_resource, s3_client):
             data_lake_conn_id="data_lake_test",
             data_lake_path=s3_bucket + "/source1/entity1/{{ ds }}/",
         )
-    dag.test(execution_date=pendulum.datetime(2023, 10, 1))
+    run_dag(dag, pendulum.datetime(2023, 10, 1))
 
     # Entity should not exist after delete
     with pytest.raises(ClientError):
@@ -120,6 +116,6 @@ def test_data_lake_check_operator(dag, s3_bucket, s3_resource, s3_client):
         res_correct_prefix_extra_file >> check_res_correct_prefix_extra_file
         res_prefix_incorrect_extra_file >> check_res_incorrect_extra_file
 
-    dag.test(execution_date=pendulum.datetime(2023, 10, 1))
+    run_dag(dag, pendulum.datetime(2023, 10, 1))
 
     # Entity should not exist after delete

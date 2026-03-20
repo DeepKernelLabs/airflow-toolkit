@@ -2,16 +2,11 @@ import textwrap
 from pathlib import Path
 import numpy as np
 import pendulum
-import pytest
 
 from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import (
     FilesystemToDatabaseOperator,
 )
-from airflow_toolkit._compact.airflow_shim import BaseHook, is_airflow3
-
-pytestmark = pytest.mark.skipif(
-    is_airflow3, reason="Not supported for Airflow 3+, currently"
-)
+from airflow_toolkit._compact.airflow_shim import BaseHook, get_connection_hook, run_dag
 
 
 def _write_csv_for_ds(
@@ -42,7 +37,7 @@ def test_source_file_to_database(
     assert BaseHook.get_connection("local_fs_test").extra_dejson["path"] == str(folder)
     assert BaseHook.get_connection("sqlite_test").conn_type == "sqlite"
 
-    src = BaseHook.get_connection("sqlite_test").get_hook()
+    src = get_connection_hook("sqlite_test")
     src.run(
         sql=[
             """
@@ -69,7 +64,7 @@ def test_source_file_to_database(
             },
         )
 
-    dag.test(execution_date=execution_date, session=sa_session)
+    run_dag(dag, execution_date)
 
     df = src.get_pandas_df(
         "SELECT * FROM test_table",
@@ -114,7 +109,7 @@ def test_source_file_with_less_columns_that_database(
         Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
     )
 
-    sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
+    sqlite_hook = get_connection_hook("sqlite_test")
     sqlite_hook.run(
         sql=[
             'CREATE TABLE test_csv_with_less_columns_that_database (a int, b int, c int, d int, "_DS" date);',
@@ -133,7 +128,7 @@ def test_source_file_with_less_columns_that_database(
             include_source_path=False,
         )
 
-    dag.test(execution_date=exec_date, session=sa_session)
+    run_dag(dag, exec_date)
 
     df = sqlite_hook.get_pandas_df(
         sql="SELECT * FROM test_csv_with_less_columns_that_database"
@@ -170,7 +165,7 @@ def test_source_file_with_more_columns_than_database(
         Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
     )
 
-    sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
+    sqlite_hook = get_connection_hook("sqlite_test")
     sqlite_hook.run(
         sql=[
             'CREATE TABLE test_csv_with_more_columns_than_database (a int, b int, "_DS" date);',
@@ -189,7 +184,7 @@ def test_source_file_with_more_columns_than_database(
             include_source_path=False,
         )
 
-    dag.test(execution_date=exec_date, session=sa_session)
+    run_dag(dag, exec_date)
 
     df = sqlite_hook.get_pandas_df(
         sql="SELECT * FROM test_csv_with_more_columns_than_database"
@@ -225,7 +220,7 @@ def test_source_file_and_database_with_different_columns(
         Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
     )
 
-    sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
+    sqlite_hook = get_connection_hook("sqlite_test")
     sqlite_hook.run(
         sql=[
             "CREATE TABLE test_csv_with_more_columns_than_database (a int, d int, _DS date);",
@@ -244,7 +239,7 @@ def test_source_file_and_database_with_different_columns(
             include_source_path=False,
         )
 
-    dag.test(execution_date=exec_date, session=sa_session)
+    run_dag(dag, exec_date)
 
     df = sqlite_hook.get_pandas_df(
         sql="SELECT * FROM test_csv_with_more_columns_than_database"
