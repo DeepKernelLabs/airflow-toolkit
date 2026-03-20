@@ -1,7 +1,7 @@
 [project]
 name = "airflow-toolkit"
-version = "1.0.0"
-description = ""
+version = "1.0.1"
+description = "A toolkit of operators, hooks and utilities for Apache Airflow 2 and 3"
 authors = [{ name = "Biel Llobera", email = "biel_llobera@dkl.digital" }]
 requires-python = ">=3.10,<3.13"
 readme = "README.md"
