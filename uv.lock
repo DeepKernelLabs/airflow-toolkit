@@ -276,7 +276,7 @@ wheels = [
 
 [[package]]
 name = "airflow-toolkit"
-version = "1.0.0"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },
@@ -7142,14 +7142,14 @@ wheels = [
 
 [[package]]
 name = "smart-open"
-version = "7.4.0"
+version = "7.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "wrapt", marker = "(python_full_version < '3.12' and extra == 'extra-15-airflow-toolkit-airflow2') or (python_full_version >= '3.12' and extra == 'extra-15-airflow-toolkit-airflow3') or (extra != 'extra-15-airflow-toolkit-airflow2' and extra == 'extra-15-airflow-toolkit-airflow3')" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/d9/03809d3d403a8f804d5d990e55175fa12e4a001b51e60291e761ff6da34b/smart_open-7.4.0.tar.gz", hash = "sha256:cb989a38db774c5aadc416020dff21da6cea11059309f50e237d6520d6636247", size = 53185, upload-time = "2025-10-20T11:56:42.87Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/be/a66598b305763861a9ab15ff0f2fbc44e47b1ce7a776797337a4eef37c66/smart_open-7.5.1.tar.gz", hash = "sha256:3f08e16827c4733699e6b2cc40328a3568f900cb12ad9a3ad233ba6c872d9fe7", size = 54034, upload-time = "2026-02-23T11:01:28.979Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ea/c3/9eda530579efb091f546f1f02c7010e47b675769c381c4cdab68bbdb848d/smart_open-7.4.0-py3-none-any.whl", hash = "sha256:ff75c536bc3c534fca8e8fbebe1f0e22cafecc1a398d096924720c995d71f34a", size = 63211, upload-time = "2025-10-20T11:56:41.326Z" },
+    { url = "https://files.pythonhosted.org/packages/5e/ea/dcdecd68acebb49d3fd560473a43499b1635076f7f1ae8641c060fe7ce74/smart_open-7.5.1-py3-none-any.whl", hash = "sha256:3e07cbbd9c8a908bcb8e25d48becf1a5cbb4886fa975e9f34c672ed171df2318", size = 64108, upload-time = "2026-02-23T11:01:27.429Z" },
 ]
 
 [[package]]
