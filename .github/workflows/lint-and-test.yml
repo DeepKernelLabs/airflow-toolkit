@@ -20,18 +20,12 @@ jobs:
       - name: Install uv and Python
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.8.18"
+          version: "0.9.11"
           python-version: "3.11"
           enable-cache: true
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=src" >> $GITHUB_ENV
-
-      # - name: Install uv manually
-      #   run: |
-      #     curl -LsSf https://astral.sh/uv/install.sh | sh
-      #     export PATH="$HOME/.local/bin:$PATH"
-      #     uv --version
 
       - name: Install dependencies (uv)
         run: uv sync --locked --dev
@@ -73,15 +67,15 @@ jobs:
       - name: Install uv and Python
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.8.18"
+          version: "0.9.11"
           python-version: ${{ matrix.PYTHON_VERSION }}
           enable-cache: true
 
       - name: Install dependencies (uv)
-        run: uv sync --locked --dev
+        run: uv sync --locked --dev --extra airflow3
 
       - name: Initialize database
-        run: uv run airflow db init
+        run: uv run airflow db migrate
 
       - name: Start S3/Mock server
         run: docker run -d --name test-s3mock --rm -p 9090:9090 -e initialBuckets=data_lake -e debug=true -t adobe/s3mock

@@ -70,6 +70,70 @@ branch_task = _branch_task
 
 is_airflow3 = _M >= 3
 
+# Session utilities — paths differ between Airflow 2 and 3
+from airflow.utils.session import create_session  # noqa: E402, F401
+
+try:
+    from airflow.utils.db import provide_session  # noqa: E402, F401
+except ImportError:
+
+    def provide_session(func):  # noqa: E402
+        return func
+
+
+def run_dag(dag, logical_date):
+    """Run dag.test() compatible with both Airflow 2 and 3.
+
+    Airflow 2 uses ``execution_date``, Airflow 3 renamed it to ``logical_date``.
+
+    In Airflow 3, dag.test() requires the DAG to be serialized into the metadata
+    DB (via the bundle system) before it can create a DagRun.  When running
+    in-memory test DAGs (not loaded from a file bundle) we serialize the DAG
+    manually so dag.test() can proceed.
+    """
+    if is_airflow3:
+        from airflow import settings as _af_settings
+        from airflow.dag_processing.bundles.manager import DagBundlesManager
+        from airflow.dag_processing.collection import update_dag_parsing_results_in_db
+        from airflow.serialization.serialized_objects import LazyDeserializedDAG
+
+        session = _af_settings.Session()
+        try:
+            # Airflow 3 dag.test() needs DagVersion in the DB.  Sync bundles
+            # first (provides the FK parent), then register the in-memory DAG.
+            manager = DagBundlesManager()
+            manager.sync_bundles_to_db(session=session)
+            session.commit()
+            update_dag_parsing_results_in_db(
+                bundle_name="dags-folder",
+                bundle_version=None,
+                dags=[LazyDeserializedDAG.from_dag(dag)],
+                import_errors={},
+                parse_duration=None,
+                warnings=set(),
+                session=session,
+            )
+            session.commit()
+        finally:
+            session.close()
+        return dag.test(logical_date=logical_date)
+    else:
+        return dag.test(execution_date=logical_date)
+
+
+def get_connection_hook(conn_id: str):
+    """Return a hook for *conn_id*, compatible with Airflow 2 and 3.
+
+    Airflow 2: ``Connection.get_hook()`` exists.
+    Airflow 3: ``Connection.get_hook()`` was removed; fall back to
+    ``BaseHook.get_hook()``.
+    """
+    conn = _BaseHook.get_connection(conn_id)
+    if hasattr(conn, "get_hook"):
+        return conn.get_hook()
+    return _BaseHook.get_hook(conn_id)
+
+
 # Improve editor typing without importing both variants at runtime
 if TYPE_CHECKING:
     try:
