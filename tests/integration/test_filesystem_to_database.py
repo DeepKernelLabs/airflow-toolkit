@@ -2,11 +2,26 @@ import textwrap
 from pathlib import Path
 import numpy as np
 import pendulum
+import pytest
 
 from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import (
     FilesystemToDatabaseOperator,
 )
-from airflow_toolkit._compact.airflow_shim import BaseHook, get_connection_hook, run_dag
+from airflow_toolkit._compact.airflow_shim import (
+    BaseHook,
+    get_connection_hook,
+    is_airflow3,
+    run_dag,
+)
+
+# FilesystemToDatabaseOperator uses SQLite connections inside dag.test(). In
+# Airflow 3, task execution requires a supervisor process to initialise
+# SUPERVISOR_COMMS; dag.test() does not provide one, so any operator that
+# touches connections or XCom at task-execution time raises ImportError.
+pytestmark = pytest.mark.skipif(
+    is_airflow3,
+    reason="Requires supervisor process not available in dag.test() on Airflow 3",
+)
 
 
 def _write_csv_for_ds(
