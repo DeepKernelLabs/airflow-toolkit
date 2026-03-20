@@ -1,4 +1,6 @@
+from contextlib import contextmanager
 from io import BytesIO
+from typing import Generator
 
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 
@@ -9,20 +11,37 @@ class SFTPFilesystem(FilesystemProtocol):
     def __init__(self, hook: SFTPHook):
         self.hook = hook
 
+    @contextmanager
+    def _conn(self) -> Generator:
+        """Yield an SFTP client, using managed connections when available.
+
+        Provider >=5.x (AF3) decorates hook methods with @handle_connection_management,
+        which opens and closes the underlying SFTP transport per call. After each call
+        self.conn is left pointing to a closed client, so get_conn() returns a stale
+        object. Using get_managed_conn() (reference-counted) avoids this by always
+        opening a fresh connection. Provider <5.x (AF2) lacks get_managed_conn, so
+        we fall back to get_conn().
+        """
+        if hasattr(self.hook, "get_managed_conn"):
+            with self.hook.get_managed_conn() as conn:
+                yield conn
+        else:
+            yield self.hook.get_conn()
+
     def read(self, path: str) -> bytes:
-        conn = self.hook.get_conn()
         out = BytesIO()
-        conn.getfo(remotepath=path, fl=out)
+        with self._conn() as conn:
+            conn.getfo(remotepath=path, fl=out)
         out.seek(0)
         return out.getvalue()
 
     def write(self, data: str | bytes | BytesIO, path: str):
-        conn = self.hook.get_conn()
         if isinstance(data, str):
             data = data.encode()
         if isinstance(data, bytes):
             data = BytesIO(data)
-        conn.putfo(fl=data, remotepath=path, confirm=True)
+        with self._conn() as conn:
+            conn.putfo(fl=data, remotepath=path, confirm=True)
 
     def delete_file(self, path: str):
         self.hook.delete_file(path)

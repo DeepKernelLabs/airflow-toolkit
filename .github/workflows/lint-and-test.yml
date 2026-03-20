@@ -20,18 +20,12 @@ jobs:
       - name: Install uv and Python
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.8.18"
+          version: "0.9.11"
           python-version: "3.11"
           enable-cache: true
 
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=src" >> $GITHUB_ENV
-
-      # - name: Install uv manually
-      #   run: |
-      #     curl -LsSf https://astral.sh/uv/install.sh | sh
-      #     export PATH="$HOME/.local/bin:$PATH"
-      #     uv --version
 
       - name: Install dependencies (uv)
         run: uv sync --locked --dev
@@ -43,8 +37,17 @@ jobs:
     runs-on: ubuntu-24.04
 
     strategy:
+      fail-fast: false
       matrix:
-        PYTHON_VERSION: ['3.11']
+        include:
+          - AIRFLOW_VERSION: 'airflow2'
+            python-version: '3.11'
+          - AIRFLOW_VERSION: 'airflow3'
+            python-version: '3.11'
+          - AIRFLOW_VERSION: 'airflow3'
+            python-version: '3.12'
+
+    name: test (${{ matrix.AIRFLOW_VERSION }}, python ${{ matrix.python-version }})
 
     env:
       AIRFLOW_CONN_DATA_LAKE_TEST: '{"conn_type": "aws", "extra": {"endpoint_url": "http://localhost:9090"}}'
@@ -64,31 +67,37 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=src" >> $GITHUB_ENV
 
-      # - name: Install uv manually
-      #   run: |
-      #     curl -LsSf https://astral.sh/uv/install.sh | sh
-      #     export PATH="$HOME/.local/bin:$PATH"
-      #     uv --version
-
       - name: Install uv and Python
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.8.18"
-          python-version: ${{ matrix.PYTHON_VERSION }}
+          version: "0.9.11"
+          python-version: ${{ matrix.python-version }}
           enable-cache: true
 
       - name: Install dependencies (uv)
-        run: uv sync --locked --dev
+        run: uv sync --locked --dev --extra ${{ matrix.AIRFLOW_VERSION }}
 
       - name: Initialize database
-        run: uv run airflow db init
+        run: |
+          if [ "${{ matrix.AIRFLOW_VERSION }}" = "airflow3" ]; then
+            uv run airflow db migrate
+          else
+            uv run airflow db reset -y
+          fi
 
       - name: Start S3/Mock server
         run: docker run -d --name test-s3mock --rm -p 9090:9090 -e initialBuckets=data_lake -e debug=true -t adobe/s3mock
 
       - name: Start SFTP server
-        # run: docker start test-sftp
-        run: docker run -p 2222:22 -d atmoz/sftp test_user:pass:::root_folder
+        run: docker run -p 2222:22 -d --name test-sftp atmoz/sftp test_user:pass:::root_folder
+
+      - name: Wait for SFTP server to be ready
+        run: |
+          for i in $(seq 1 15); do
+            nc -z localhost 2222 && echo "SFTP ready" && break
+            echo "Waiting for SFTP... ($i/15)"
+            sleep 2
+          done
 
       - name: Run tests with pytest
         run: >

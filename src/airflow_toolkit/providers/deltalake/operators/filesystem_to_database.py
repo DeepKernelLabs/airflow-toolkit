@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import io
 import logging
-import sys
 import urllib.parse
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 from sqlalchemy import (
@@ -27,11 +26,6 @@ from airflow_toolkit._compact.airflow_shim import (
 )
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
-
-if sys.version_info < (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +107,10 @@ class FilesystemToDatabaseOperator(BaseOperator):
         if conn.conn_type == "postgres":
             password_encoded = urllib.parse.quote_plus(conn.password)
             connection_url = f"postgresql://{conn.login}:{password_encoded}@{conn.host}:{conn.port}/{conn.schema}"
+        elif conn.conn_type == "sqlite":
+            # get_uri() URL-encodes the host, producing an invalid sqlite:// URL
+            # for absolute paths. Build the URL directly from the raw host.
+            connection_url = f"sqlite:///{conn.host}"
         else:
             connection_url = conn.get_uri()
         engine: Engine = create_engine(connection_url)

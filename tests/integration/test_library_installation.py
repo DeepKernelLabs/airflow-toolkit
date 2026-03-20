@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -67,6 +68,10 @@ def make_env(venv_path: Path, airflow_home: Path) -> dict:
     return env
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="airflow2 deps (pendulum 2.x) require distutils which was removed in Python 3.12",
+)
 @pytest.mark.parametrize("af_version", ["airflow2"])
 def test_import_package(virtual_environment, project_path, tmp_path, af_version):
     venv_path = virtual_environment
@@ -124,8 +129,16 @@ def test_s3_connection_available(virtual_environment, tmp_path):
     airflow_home.mkdir(exist_ok=True)
     env = make_env(virtual_environment, airflow_home)
 
-    # init DB (if needed explicitly here)
-    subprocess.check_call(["airflow", "db", "init"], env=env)
+    # init DB — AF3 uses "db migrate", AF2 uses "db init"
+    airflow_version = subprocess.check_output(
+        ["airflow", "version"], env=env, text=True
+    ).strip()
+    db_cmd = (
+        ["airflow", "db", "migrate"]
+        if airflow_version.startswith("3.")
+        else ["airflow", "db", "init"]
+    )
+    subprocess.check_call(db_cmd, env=env)
 
     output = subprocess.check_output(
         ["airflow", "connections", "get", "data_lake_test"],

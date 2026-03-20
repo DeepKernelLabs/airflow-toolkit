@@ -1,17 +1,11 @@
 import logging
-import sys
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 
 from deltalake import write_deltalake
 from duckdb_provider.hooks.duckdb_hook import DuckDBHook
 
 from airflow_toolkit._compact.airflow_shim import BaseOperator, Context, BaseHook
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
 
 logger = logging.getLogger(__name__)
 

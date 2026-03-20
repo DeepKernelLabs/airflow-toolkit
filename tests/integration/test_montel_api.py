@@ -7,7 +7,7 @@ import pytest
 from airflow.models.variable import Variable
 from airflow.providers.http.operators.http import HttpOperator
 
-from airflow_toolkit._compact.airflow_shim import PythonOperator
+from airflow_toolkit._compact.airflow_shim import PythonOperator, run_dag
 from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import (  # noqa
     MultiHttpToFilesystem,
 )
@@ -72,4 +72,4 @@ def test_data_lake_delete_operator(dag, local_fs_conn_params):
             strict_response_schema=False,
         )
         get_access_token >> print_token >> call_ohlc_endpoint
-    dag.test(execution_date=pendulum.datetime(2023, 10, 1))
+    run_dag(dag, pendulum.datetime(2023, 10, 1))

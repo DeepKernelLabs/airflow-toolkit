@@ -1,7 +1,7 @@
 import pytest
 import datetime
 from airflow import DAG
-from airflow_toolkit._compact.airflow_shim import BashOperator
+from airflow_toolkit._compact.airflow_shim import BashOperator, run_dag
 from airflow_toolkit.notifications.slack import webhook as slack_webhook
 
 
@@ -21,7 +21,7 @@ def test_webhook_slack_notifications_on_fail(mocker):
             on_failure_callback=slack_webhook.dag_failure_slack_notification_webhook(),
         )
 
-    dag.test()
+    run_dag(dag, datetime.datetime(2023, 10, 1, tzinfo=datetime.timezone.utc))
 
     slack_mock.assert_called_once_with()
 

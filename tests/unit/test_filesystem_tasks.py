@@ -1,7 +1,7 @@
 import logging
 
 import pendulum
-from airflow_toolkit._compact.airflow_shim import PythonOperator
+from airflow_toolkit._compact.airflow_shim import PythonOperator, run_dag
 from airflow.utils.state import TaskInstanceState as TIS
 
 from airflow_toolkit.providers.filesystem.tasks import branch_filesystem_check_task
@@ -33,7 +33,7 @@ def test_branch_filesystem_check_task_main_branch(
 
         file_check >> [main_branch, alternative_branch]
 
-    res = dag.test(execution_date=pendulum.datetime(2023, 10, 1))
+    res = run_dag(dag, pendulum.datetime(2023, 10, 1))
 
     assert res.get_task_instance("main_branch").state == TIS.SUCCESS
     assert res.get_task_instance("alternative_branch").state == TIS.SKIPPED
@@ -58,7 +58,7 @@ def test_branch_filesystem_check_task_alternative_branch(dag, s3_bucket):
 
         file_check >> [main_branch, alternative_branch]
 
-    res = dag.test(execution_date=pendulum.datetime(2023, 10, 1))
+    res = run_dag(dag, pendulum.datetime(2023, 10, 1))
 
     assert res.get_task_instance("main_branch").state == TIS.SKIPPED
     assert res.get_task_instance("alternative_branch").state == TIS.SUCCESS
