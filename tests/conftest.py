@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 import uuid
 import subprocess
@@ -8,13 +9,15 @@ from botocore.config import Config
 import pendulum
 import pytest
 
-from airflow import DAG
-from airflow.utils.db import provide_session
-
 import json
-from airflow.utils.session import create_session
 
-from airflow_toolkit._compact.airflow_shim import Connection, is_airflow3
+from airflow_toolkit._compact.airflow_shim import (
+    Connection,
+    DAG,
+    create_session,
+    is_airflow3,
+    provide_session,
+)
 
 
 # ---------- Paths ----------
@@ -67,11 +70,24 @@ def fresh_airflow_db_per_test(tmp_path, monkeypatch):
 
     monkeypatch.setenv("AIRFLOW__CORE__STORE_SERIALIZED_DAGS", "False")
     monkeypatch.setenv("AIRFLOW__CORE__STORE_DAG_CODE", "False")
+    monkeypatch.setenv("AIRFLOW__CORE__EXECUTOR", "SequentialExecutor")
     # Initialize DB correctly for AF2 or AF3
+    airflow_bin = Path(sys.executable).parent / "airflow"
     if is_airflow3:
-        subprocess.run(["airflow", "db", "migrate"], check=True)
+        subprocess.run([str(airflow_bin), "db", "migrate"], check=True)
+        # Airflow 3 caches the DB connection at module-import time, so we must
+        # re-initialise the ORM after monkeypatching the connection URL.
+        import airflow.settings as _af_settings
+
+        _af_settings.configure_vars()
+        _af_settings.configure_orm(disable_connection_pool=True)
     else:
-        subprocess.run(["airflow", "db", "reset", "-y"], check=True)
+        subprocess.run([str(airflow_bin), "db", "reset", "-y"], check=True)
+        # Airflow 2 also caches the DB connection at import time; force reconnect.
+        import airflow.settings as _af_settings
+
+        _af_settings.configure_vars()
+        _af_settings.configure_orm(disable_connection_pool=True)
 
     yield
     # nothing to teardown; tmp_path is cleaned by pytest
@@ -96,7 +112,7 @@ def dag():
     Use as:
         with dag:
             ...
-        dag.test(execution_date=pendulum.datetime(YYYY, M, D))
+        run_dag(dag, pendulum.datetime(YYYY, M, D))
     """
     dag_id = f"test_{uuid.uuid4().hex[:8]}"
     default_args = {"start_date": pendulum.datetime(2023, 1, 1)}
@@ -122,7 +138,9 @@ def s3_bucket(s3_resource):
 
 @pytest.fixture
 def s3_resource():
-    endpoint_url = os.environ["S3_ENDPOINT_URL"]
+    endpoint_url = os.environ.get("S3_ENDPOINT_URL")
+    if not endpoint_url:
+        pytest.skip("S3_ENDPOINT_URL not set — skipping S3 integration test")
     return boto3.resource("s3", endpoint_url=endpoint_url)
 
 

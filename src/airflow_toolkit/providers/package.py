@@ -1,6 +1,10 @@
+from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Dict
 
-from airflow_toolkit._version import __version__
+try:
+    __version__ = version("airflow-toolkit")
+except PackageNotFoundError:
+    __version__ = "unknown"
 
 
 def get_provider_info() -> Dict[str, Any]:

@@ -160,6 +160,10 @@ cython_debug/
 .idea/
 
 /airflow/
+.claude/
+.venv-af2/
+.venv-af3/
+test_env/
 
 # VS Code
 .vscode/

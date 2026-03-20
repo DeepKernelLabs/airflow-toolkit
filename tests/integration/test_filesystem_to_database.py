@@ -7,10 +7,20 @@ import pytest
 from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import (
     FilesystemToDatabaseOperator,
 )
-from airflow_toolkit._compact.airflow_shim import BaseHook, is_airflow3
+from airflow_toolkit._compact.airflow_shim import (
+    BaseHook,
+    get_connection_hook,
+    is_airflow3,
+    run_dag,
+)
 
+# FilesystemToDatabaseOperator uses SQLite connections inside dag.test(). In
+# Airflow 3, task execution requires a supervisor process to initialise
+# SUPERVISOR_COMMS; dag.test() does not provide one, so any operator that
+# touches connections or XCom at task-execution time raises ImportError.
 pytestmark = pytest.mark.skipif(
-    is_airflow3, reason="Not supported for Airflow 3+, currently"
+    is_airflow3,
+    reason="Requires supervisor process not available in dag.test() on Airflow 3",
 )
 
 
@@ -42,7 +52,7 @@ def test_source_file_to_database(
     assert BaseHook.get_connection("local_fs_test").extra_dejson["path"] == str(folder)
     assert BaseHook.get_connection("sqlite_test").conn_type == "sqlite"
 
-    src = BaseHook.get_connection("sqlite_test").get_hook()
+    src = get_connection_hook("sqlite_test")
     src.run(
         sql=[
             """
@@ -58,7 +68,7 @@ def test_source_file_to_database(
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path=str(folder),
+            filesystem_path="/",
             db_table="test_table",
             task_id="filesystem_to_database_test",
             metadata={
@@ -69,7 +79,7 @@ def test_source_file_to_database(
             },
         )
 
-    dag.test(execution_date=execution_date, session=sa_session)
+    run_dag(dag, execution_date)
 
     df = src.get_pandas_df(
         "SELECT * FROM test_table",
@@ -110,11 +120,11 @@ def test_source_file_with_less_columns_that_database(
     """
 
     exec_date = pendulum.datetime(2023, 10, 1)
-    folder = _write_csv_for_ds(
+    _write_csv_for_ds(
         Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
     )
 
-    sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
+    sqlite_hook = get_connection_hook("sqlite_test")
     sqlite_hook.run(
         sql=[
             'CREATE TABLE test_csv_with_less_columns_that_database (a int, b int, c int, d int, "_DS" date);',
@@ -126,14 +136,14 @@ def test_source_file_with_less_columns_that_database(
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path=str(folder),
+            filesystem_path="/",
             db_table="test_csv_with_less_columns_that_database",
             task_id="filesystem_to_database_test",
             metadata={"_DS": "{{ ds }}"},
             include_source_path=False,
         )
 
-    dag.test(execution_date=exec_date, session=sa_session)
+    run_dag(dag, exec_date)
 
     df = sqlite_hook.get_pandas_df(
         sql="SELECT * FROM test_csv_with_less_columns_that_database"
@@ -166,11 +176,11 @@ def test_source_file_with_more_columns_than_database(
     """
 
     exec_date = pendulum.datetime(2023, 10, 1)
-    folder = _write_csv_for_ds(
+    _write_csv_for_ds(
         Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
     )
 
-    sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
+    sqlite_hook = get_connection_hook("sqlite_test")
     sqlite_hook.run(
         sql=[
             'CREATE TABLE test_csv_with_more_columns_than_database (a int, b int, "_DS" date);',
@@ -182,14 +192,14 @@ def test_source_file_with_more_columns_than_database(
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path=str(folder),
+            filesystem_path="/",
             db_table="test_csv_with_more_columns_than_database",
             task_id="filesystem_to_database_test",
             metadata={"_DS": "{{ ds }}"},
             include_source_path=False,
         )
 
-    dag.test(execution_date=exec_date, session=sa_session)
+    run_dag(dag, exec_date)
 
     df = sqlite_hook.get_pandas_df(
         sql="SELECT * FROM test_csv_with_more_columns_than_database"
@@ -221,11 +231,11 @@ def test_source_file_and_database_with_different_columns(
     not defined in the source file.
     """
     exec_date = pendulum.datetime(2023, 10, 1)
-    folder = _write_csv_for_ds(
+    _write_csv_for_ds(
         Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
     )
 
-    sqlite_hook = BaseHook.get_connection("sqlite_test").get_hook()
+    sqlite_hook = get_connection_hook("sqlite_test")
     sqlite_hook.run(
         sql=[
             "CREATE TABLE test_csv_with_more_columns_than_database (a int, d int, _DS date);",
@@ -237,14 +247,14 @@ def test_source_file_and_database_with_different_columns(
         FilesystemToDatabaseOperator(
             filesystem_conn_id="local_fs_test",
             database_conn_id="sqlite_test",
-            filesystem_path=str(folder),
+            filesystem_path="/",
             db_table="test_csv_with_more_columns_than_database",
             task_id="filesystem_to_database_test",
             metadata={"_DS": "{{ ds }}"},
             include_source_path=False,
         )
 
-    dag.test(execution_date=exec_date, session=sa_session)
+    run_dag(dag, exec_date)
 
     df = sqlite_hook.get_pandas_df(
         sql="SELECT * FROM test_csv_with_more_columns_than_database"
