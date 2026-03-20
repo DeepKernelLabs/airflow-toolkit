@@ -120,7 +120,7 @@ def test_source_file_with_less_columns_that_database(
     """
 
     exec_date = pendulum.datetime(2023, 10, 1)
-    folder = _write_csv_for_ds(
+    _write_csv_for_ds(
         Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
     )
 
@@ -176,7 +176,7 @@ def test_source_file_with_more_columns_than_database(
     """
 
     exec_date = pendulum.datetime(2023, 10, 1)
-    folder = _write_csv_for_ds(
+    _write_csv_for_ds(
         Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
     )
 
@@ -231,7 +231,7 @@ def test_source_file_and_database_with_different_columns(
     not defined in the source file.
     """
     exec_date = pendulum.datetime(2023, 10, 1)
-    folder = _write_csv_for_ds(
+    _write_csv_for_ds(
         Path(BaseHook.get_connection("local_fs_test").extra_dejson["path"]), exec_date
     )
 

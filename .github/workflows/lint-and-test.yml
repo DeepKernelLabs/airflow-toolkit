@@ -39,9 +39,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        AIRFLOW_VERSION: ['airflow2', 'airflow3']
+        include:
+          - AIRFLOW_VERSION: 'airflow2'
+            python-version: '3.11'
+          - AIRFLOW_VERSION: 'airflow3'
+            python-version: '3.11'
+          - AIRFLOW_VERSION: 'airflow3'
+            python-version: '3.12'
 
-    name: test (${{ matrix.AIRFLOW_VERSION }}, python 3.11)
+    name: test (${{ matrix.AIRFLOW_VERSION }}, python ${{ matrix.python-version }})
 
     env:
       AIRFLOW_CONN_DATA_LAKE_TEST: '{"conn_type": "aws", "extra": {"endpoint_url": "http://localhost:9090"}}'
@@ -65,7 +71,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           version: "0.9.11"
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
           enable-cache: true
 
       - name: Install dependencies (uv)
