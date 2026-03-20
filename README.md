@@ -13,8 +13,8 @@
   <a href="https://opensource.org/licenses/Apache-2.0">
     <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="Badge 2"/>
   </a>
-  <a href="https://img.shields.io/badge/python-3.10%20%7C%203.11-blue">
-    <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11-blue" alt="Badge 3"/>
+  <a href="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue">
+    <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue" alt="Badge 3"/>
   </a>
 
   <br/><br/>
