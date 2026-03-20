@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "airflow-tools"
+name = "airflow-toolkit"
 version = "0.13.3"
 
 description = ""
 authors = ["Biel Llobera <biel_llobera@dkl.digital>"]
 readme = "README.md"
-include = ["src/airflow_tools"]
+packages = [{include = "airflow_tools", from = "src"}]
 
 [tool.poetry.dependencies]
 airflow-provider-duckdb = "^0.2.0"
