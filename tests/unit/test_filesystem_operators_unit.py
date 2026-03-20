@@ -4,12 +4,11 @@ Uses LocalFilesystem backed by tmp_path so no external services are required.
 BaseHook.get_connection and FilesystemFactory are patched to wire up local
 filesystems without an Airflow metadata DB.
 """
-from io import BytesIO
+
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
-import pytest
 
 from airflow_toolkit.filesystems.impl.local_filesystem import LocalFilesystem
 from airflow_toolkit.providers.filesystem.operators.filesystem import (
@@ -20,7 +19,9 @@ from airflow_toolkit.providers.filesystem.operators.filesystem import (
 )
 
 _FACTORY = "airflow_toolkit.providers.filesystem.operators.filesystem.FilesystemFactory.get_data_lake_filesystem"
-_GET_CONN = "airflow_toolkit.providers.filesystem.operators.filesystem.BaseHook.get_connection"
+_GET_CONN = (
+    "airflow_toolkit.providers.filesystem.operators.filesystem.BaseHook.get_connection"
+)
 
 
 def _fs(base: Path) -> LocalFilesystem:
@@ -33,6 +34,7 @@ def _fs(base: Path) -> LocalFilesystem:
 # ---------------------------------------------------------------------------
 # SQLToFilesystem
 # ---------------------------------------------------------------------------
+
 
 class TestSQLToFilesystem:
     def _make_op(self, **kwargs):
@@ -93,7 +95,9 @@ class TestSQLToFilesystem:
         parquet_files = sorted((tmp_path / "dst" / "output").glob("*.parquet"))
         assert len(parquet_files) == 3
         assert [f.name for f in parquet_files] == [
-            "part0001.parquet", "part0002.parquet", "part0003.parquet"
+            "part0001.parquet",
+            "part0002.parquet",
+            "part0003.parquet",
         ]
         hook.get_pandas_df_by_chunks.assert_called_once_with(
             sql="SELECT * FROM t", chunksize=1
@@ -149,6 +153,7 @@ class TestSQLToFilesystem:
 # ---------------------------------------------------------------------------
 # FilesystemToFilesystem
 # ---------------------------------------------------------------------------
+
 
 class TestFilesystemToFilesystem:
     def _make_op(self, **kwargs):
@@ -288,6 +293,7 @@ class TestFilesystemToFilesystem:
 # FilesystemCheckOperator — routing logic (file vs prefix)
 # ---------------------------------------------------------------------------
 
+
 class TestFilesystemCheckOperatorRouting:
     def test_path_ending_with_slash_calls_check_prefix(self):
         mock_fs = MagicMock()
@@ -299,7 +305,10 @@ class TestFilesystemCheckOperatorRouting:
             filesystem_conn_id="conn",
             filesystem_path="some/prefix/",
         )
-        with patch(_GET_CONN, return_value=mock_conn), patch(_FACTORY, return_value=mock_fs):
+        with (
+            patch(_GET_CONN, return_value=mock_conn),
+            patch(_FACTORY, return_value=mock_fs),
+        ):
             result = op.execute({})
 
         mock_fs.check_prefix.assert_called_once_with("some/prefix/")
@@ -316,7 +325,10 @@ class TestFilesystemCheckOperatorRouting:
             filesystem_conn_id="conn",
             filesystem_path="some/file.txt",
         )
-        with patch(_GET_CONN, return_value=mock_conn), patch(_FACTORY, return_value=mock_fs):
+        with (
+            patch(_GET_CONN, return_value=mock_conn),
+            patch(_FACTORY, return_value=mock_fs),
+        ):
             result = op.execute({})
 
         mock_fs.check_file.assert_called_once_with("some/file.txt")
@@ -328,6 +340,7 @@ class TestFilesystemCheckOperatorRouting:
 # FilesystemDeleteOperator — delegates to delete_prefix
 # ---------------------------------------------------------------------------
 
+
 class TestFilesystemDeleteOperator:
     def test_calls_delete_prefix(self):
         mock_fs = MagicMock()
@@ -338,7 +351,10 @@ class TestFilesystemDeleteOperator:
             filesystem_conn_id="conn",
             filesystem_path="some/prefix/",
         )
-        with patch(_GET_CONN, return_value=mock_conn), patch(_FACTORY, return_value=mock_fs):
+        with (
+            patch(_GET_CONN, return_value=mock_conn),
+            patch(_FACTORY, return_value=mock_fs),
+        ):
             op.execute({})
 
         mock_fs.delete_prefix.assert_called_once_with("some/prefix/")

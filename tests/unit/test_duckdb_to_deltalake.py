@@ -1,5 +1,4 @@
 """Unit tests for DuckdbToDeltalakeOperator — focuses on the pure static method."""
-import pytest
 
 from airflow_toolkit.providers.deltalake.operators.duckdb_to_deltalake import (
     DuckdbToDeltalakeOperator,
@@ -11,6 +10,7 @@ parse = DuckdbToDeltalakeOperator.parse_storage_options
 # ---------------------------------------------------------------------------
 # parse_storage_options — pure static method, no mocking needed
 # ---------------------------------------------------------------------------
+
 
 def test_extracts_account_name_and_key():
     conn = "DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=mykey123;EndpointSuffix=core.windows.net"

@@ -1,9 +1,9 @@
 """Unit tests for LocalFilesystem — no external services required."""
+
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
 
 from airflow_toolkit.filesystems.impl.local_filesystem import LocalFilesystem
 
@@ -17,6 +17,7 @@ def _make_fs(tmp_path: Path) -> LocalFilesystem:
 # ---------------------------------------------------------------------------
 # write / read
 # ---------------------------------------------------------------------------
+
 
 def test_write_and_read_string(tmp_path):
     fs = _make_fs(tmp_path)
@@ -46,6 +47,7 @@ def test_write_creates_intermediate_directories(tmp_path):
 # delete_file
 # ---------------------------------------------------------------------------
 
+
 def test_delete_file(tmp_path):
     fs = _make_fs(tmp_path)
     fs.write("data", "to_delete.txt")
@@ -64,6 +66,7 @@ def test_delete_file_with_leading_slash(tmp_path):
 # create_prefix / delete_prefix
 # ---------------------------------------------------------------------------
 
+
 def test_create_prefix_creates_directory(tmp_path):
     fs = _make_fs(tmp_path)
     fs.create_prefix("mydir/subdir/")
@@ -81,6 +84,7 @@ def test_delete_prefix_removes_directory_tree(tmp_path):
 # ---------------------------------------------------------------------------
 # check_file
 # ---------------------------------------------------------------------------
+
 
 def test_check_file_returns_true_for_existing_file(tmp_path):
     fs = _make_fs(tmp_path)
@@ -103,6 +107,7 @@ def test_check_file_returns_false_for_directory(tmp_path):
 # check_prefix
 # ---------------------------------------------------------------------------
 
+
 def test_check_prefix_returns_true_for_existing_directory(tmp_path):
     fs = _make_fs(tmp_path)
     fs.create_prefix("myprefix/")
@@ -123,6 +128,7 @@ def test_check_prefix_returns_false_for_file(tmp_path):
 # ---------------------------------------------------------------------------
 # list_files
 # ---------------------------------------------------------------------------
+
 
 def test_list_files_returns_files_in_prefix(tmp_path):
     fs = _make_fs(tmp_path)

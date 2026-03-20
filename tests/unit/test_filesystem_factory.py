@@ -1,15 +1,22 @@
 """Unit tests for FilesystemFactory — verifies correct routing by conn_type."""
+
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
-from airflow_toolkit.filesystems.impl.blob_storage_filesystem import BlobStorageFilesystem
-from airflow_toolkit.filesystems.impl.google_cloud_storage_filesystem import GCSFilesystem
+from airflow_toolkit.filesystems.impl.blob_storage_filesystem import (
+    BlobStorageFilesystem,
+)
+from airflow_toolkit.filesystems.impl.google_cloud_storage_filesystem import (
+    GCSFilesystem,
+)
 from airflow_toolkit.filesystems.impl.local_filesystem import LocalFilesystem
 from airflow_toolkit.filesystems.impl.s3_filesystem import S3Filesystem
 from airflow_toolkit.filesystems.impl.sftp_filesystem import SFTPFilesystem
-from airflow_toolkit.filesystems.impl.azure_file_share_filesystem import AzureFileShareFilesystem
+from airflow_toolkit.filesystems.impl.azure_file_share_filesystem import (
+    AzureFileShareFilesystem,
+)
 from airflow_toolkit.filesystems.impl.azure_databricks_volume_filesystem import (
     AzureDatabricksVolumeFilesystem,
 )
@@ -25,6 +32,7 @@ def _conn(conn_type: str, conn_id: str = "test_conn") -> MagicMock:
 # ---------------------------------------------------------------------------
 # Happy-path: each conn_type maps to the right filesystem class
 # ---------------------------------------------------------------------------
+
 
 @patch("airflow_toolkit.filesystems.filesystem_factory.S3Hook")
 def test_aws_returns_s3_filesystem(mock_hook):
@@ -61,7 +69,9 @@ def test_fs_returns_local_filesystem(mock_hook):
     mock_hook.assert_called_once_with(fs_conn_id="test_conn")
 
 
-@patch("airflow_toolkit.filesystems.filesystem_factory.AzureFileShareServicePrincipalHook")
+@patch(
+    "airflow_toolkit.filesystems.filesystem_factory.AzureFileShareServicePrincipalHook"
+)
 def test_azure_file_share_sp_returns_azure_file_share_filesystem(mock_hook):
     fs = FilesystemFactory.get_data_lake_filesystem(_conn("azure_file_share_sp"))
     assert isinstance(fs, AzureFileShareFilesystem)
@@ -78,6 +88,7 @@ def test_azure_databricks_volume_returns_databricks_filesystem(mock_hook):
 # ---------------------------------------------------------------------------
 # Error path: unsupported type raises NotImplementedError
 # ---------------------------------------------------------------------------
+
 
 def test_unsupported_conn_type_raises_not_implemented():
     with pytest.raises(NotImplementedError, match="not supported"):
