@@ -163,6 +163,7 @@ cython_debug/
 .claude/
 .venv-af2/
 .venv-af3/
+.venv-af3-py312/
 test_env/
 
 # VS Code
