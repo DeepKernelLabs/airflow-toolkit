@@ -1,57 +1,35 @@
 name: Publish
+
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  build:
+  pypi:
     runs-on: ubuntu-24.04
+    # environment: pypi  # uncomment to require manual approval before publishing
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv and Python
+      - name: Install uv
         uses: astral-sh/setup-uv@v6
-        with:
-          version: "0.8.18"
-          python-version: "3.11"
-          enable-cache: true
 
-      - name: Sync project dependencies
-        run: uv sync --locked --dev
+      - name: Set up Python
+        run: uv python install 3.11
 
-      # For local test publish with act
-      # - name: Install uv manually (for act)
-      #   run: |
-      #     curl -LsSf https://astral.sh/uv/install.sh | sh
-      #     echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Build distributions
+        run: uv build
 
-      - name: Install build + twine
-        run: |
-          uv pip install --python .venv/bin/python build twine
+      - name: Smoke test (wheel import)
+        run: uv run --isolated --no-project --with "dist/*.whl[airflow3]" python -c "import airflow_toolkit; print('ok')"
 
-      - name: Lint (optional, for consistency)
-        run: uv run pre-commit run --all-files
-
-      - name: Build package
-        run: uv run python -m build
-
-      - name: Twine check
-        run: uv run python -m twine check dist/*
-
-      #Local test publish with act
-      # - name: Publish to PyPI
-      #   env:
-      #     TWINE_USERNAME: __token__
-      #     TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      #   run: |
-      #     .venv/bin/twine upload dist/*
+      - name: Smoke test (sdist import)
+        run: uv run --isolated --no-project --with "dist/*.tar.gz[airflow3]" python -c "import airflow_toolkit; print('ok')"
 
       - name: Publish to PyPI
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          twine upload dist/*
+        run: uv publish

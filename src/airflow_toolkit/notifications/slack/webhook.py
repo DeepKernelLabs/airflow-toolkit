@@ -6,6 +6,8 @@ from airflow.providers.slack.notifications.slack_webhook import (
     send_slack_webhook_notification,
 )
 
+from airflow_toolkit._compact.airflow_shim import is_airflow3
+
 SLACK_WEBHOOK_CONN = "slack_webhook_notification_conn"
 DEFAULT_DAG_MSG = ':red_circle: *DAG _"{{dag.dag_id}}"_ failed*'
 DEFAULT_TASK_MSG = ':red_circle: *Task _"{{task.task_id}}"_ failed*'
@@ -20,7 +22,10 @@ class Source:
 def _get_message_blocks(
     text: str, image_url: str | None, source: str
 ) -> list[dict[str, typing.Any]]:
-    base_url = conf.get("webserver", "BASE_URL")
+    if is_airflow3:
+        base_url = conf.get("api", "base_url", fallback="http://localhost:8080")
+    else:
+        base_url = conf.get("webserver", "BASE_URL")
     dag_execution_logs_url = (
         base_url + "/dags/{{ dag.dag_id }}/grid?"
         "dag_run_id={{ run_id | urlencode }}&"
@@ -43,7 +48,7 @@ def _get_message_blocks(
                 "text": str(text) + ":\n"
                 "```"
                 "> Run_id:          {{ run_id }}\n"
-                "> Execution_date:  {{ dag_run.execution_date }}\n"
+                "> Logical_date:    {{ dag_run.logical_date }}\n"
                 "> Queued_at:       {{ dag_run.queued_at }}\n"
                 "> Failed tasks:    [" + failed_tasks + "]\n"
                 "> Host:            " + str(base_url) + "  \n"
