@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -67,6 +68,10 @@ def make_env(venv_path: Path, airflow_home: Path) -> dict:
     return env
 
 
+@pytest.mark.skipif(
+    sys.version_info >= (3, 12),
+    reason="airflow2 deps (pendulum 2.x) require distutils which was removed in Python 3.12",
+)
 @pytest.mark.parametrize("af_version", ["airflow2"])
 def test_import_package(virtual_environment, project_path, tmp_path, af_version):
     venv_path = virtual_environment
