@@ -1,7 +1,7 @@
 # Airflow Toolkit
 <div align="center">
   <!-- Logo -->
-  <img src="./media/images/logo.webp" alt="logo" width="400"/>
+  <img src="https://raw.githubusercontent.com/DeepKernelLabs/airflow-toolkit/main/media/images/logo.webp" alt="logo" width="400"/>
 
   <!-- Add some space between the logo and badges -->
   <br/>
