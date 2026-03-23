@@ -2,9 +2,6 @@ import os
 import typing
 
 from airflow.configuration import conf
-from airflow.providers.slack.notifications.slack_webhook import (
-    send_slack_webhook_notification,
-)
 
 from airflow_toolkit._compact.airflow_shim import is_airflow3
 
@@ -112,6 +109,10 @@ def dag_failure_slack_notification_webhook(
 
     if not blocks and include_blocks:
         blocks = _get_message_blocks(text=text, image_url=image_url, source=source)
+
+    from airflow.providers.slack.notifications.slack_webhook import (
+        send_slack_webhook_notification,
+    )
 
     return send_slack_webhook_notification(
         slack_webhook_conn_id=conn_id, text=text, blocks=blocks
