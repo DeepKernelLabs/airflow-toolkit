@@ -34,28 +34,28 @@ def _conn(conn_type: str, conn_id: str = "test_conn") -> MagicMock:
 # ---------------------------------------------------------------------------
 
 
-@patch("airflow_toolkit.filesystems.filesystem_factory.S3Hook")
+@patch("airflow.providers.amazon.aws.hooks.s3.S3Hook")
 def test_aws_returns_s3_filesystem(mock_hook):
     fs = FilesystemFactory.get_data_lake_filesystem(_conn("aws"))
     assert isinstance(fs, S3Filesystem)
     mock_hook.assert_called_once_with(aws_conn_id="test_conn")
 
 
-@patch("airflow_toolkit.filesystems.filesystem_factory.WasbHook")
+@patch("airflow.providers.microsoft.azure.hooks.wasb.WasbHook")
 def test_wasb_returns_blob_storage_filesystem(mock_hook):
     fs = FilesystemFactory.get_data_lake_filesystem(_conn("wasb"))
     assert isinstance(fs, BlobStorageFilesystem)
     mock_hook.assert_called_once_with(wasb_conn_id="test_conn")
 
 
-@patch("airflow_toolkit.filesystems.filesystem_factory.GCSHook")
+@patch("airflow.providers.google.cloud.hooks.gcs.GCSHook")
 def test_gcp_returns_gcs_filesystem(mock_hook):
     fs = FilesystemFactory.get_data_lake_filesystem(_conn("google_cloud_platform"))
     assert isinstance(fs, GCSFilesystem)
     mock_hook.assert_called_once_with(gcp_conn_id="test_conn")
 
 
-@patch("airflow_toolkit.filesystems.filesystem_factory.SFTPHook")
+@patch("airflow.providers.sftp.hooks.sftp.SFTPHook")
 def test_sftp_returns_sftp_filesystem(mock_hook):
     fs = FilesystemFactory.get_data_lake_filesystem(_conn("sftp"))
     assert isinstance(fs, SFTPFilesystem)
@@ -70,7 +70,7 @@ def test_fs_returns_local_filesystem(mock_hook):
 
 
 @patch(
-    "airflow_toolkit.filesystems.filesystem_factory.AzureFileShareServicePrincipalHook"
+    "airflow_toolkit.providers.azure.hooks.azure_file_share.AzureFileShareServicePrincipalHook"
 )
 def test_azure_file_share_sp_returns_azure_file_share_filesystem(mock_hook):
     fs = FilesystemFactory.get_data_lake_filesystem(_conn("azure_file_share_sp"))
@@ -78,7 +78,9 @@ def test_azure_file_share_sp_returns_azure_file_share_filesystem(mock_hook):
     mock_hook.assert_called_once_with(conn_id="test_conn")
 
 
-@patch("airflow_toolkit.filesystems.filesystem_factory.AzureDatabricksVolumeHook")
+@patch(
+    "airflow_toolkit.providers.azure.hooks.azure_databricks.AzureDatabricksVolumeHook"
+)
 def test_azure_databricks_volume_returns_databricks_filesystem(mock_hook):
     fs = FilesystemFactory.get_data_lake_filesystem(_conn("azure_databricks_volume"))
     assert isinstance(fs, AzureDatabricksVolumeFilesystem)
