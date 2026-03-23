@@ -38,7 +38,9 @@ class FilesystemFactory:
             hook = SFTPHook(ssh_conn_id=connection.conn_id)
             return SFTPFilesystem(hook)
         elif connection.conn_type == "fs":
-            from airflow_toolkit.filesystems.impl.local_filesystem import LocalFilesystem
+            from airflow_toolkit.filesystems.impl.local_filesystem import (
+                LocalFilesystem,
+            )
 
             hook = FSHook(fs_conn_id=connection.conn_id)
             return LocalFilesystem(hook)
