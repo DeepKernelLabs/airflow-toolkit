@@ -1,19 +1,26 @@
+from __future__ import annotations
+
 import logging
 from io import BytesIO
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
-from airflow.providers.amazon.aws.hooks.base_aws import AwsGenericHook
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
+if TYPE_CHECKING:
+    from airflow.providers.amazon.aws.hooks.base_aws import AwsGenericHook
+    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+    from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
 
-DataLakeConnection = Union[WasbHook, S3Hook, AwsGenericHook]
+    DataLakeConnection = Union[WasbHook, S3Hook, AwsGenericHook]
+
 logger = logging.getLogger(__file__)
 
 
 class DataLakeFacade:
     """Provides a consistent interface over different Data Lakes (S3/Blob Storage etc.)"""
 
-    def __init__(self, conn: Union[WasbHook, S3Hook, AwsGenericHook]):
+    def __init__(self, conn: AwsGenericHook | S3Hook | WasbHook):
+        from airflow.providers.amazon.aws.hooks.base_aws import AwsGenericHook
+        from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
         logger.warning(
             "DataLakeFacade is deprecated and will be removed in a future version. "
             "Please use FilesystemFactory instead."
@@ -27,6 +34,8 @@ class DataLakeFacade:
     def write(self, data: str | bytes | BytesIO, path: str):
         match self.conn.conn_type:
             case "wasb":
+                from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
+
                 assert isinstance(self.conn, WasbHook)
                 container_name, blob_name = _get_container_and_blob_name(path)
                 if isinstance(data, str):
@@ -42,6 +51,8 @@ class DataLakeFacade:
                     container_name=container_name, blob_name=blob_name, data=data
                 )
             case "aws":
+                from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
                 assert isinstance(self.conn, S3Hook)
                 bucket_name, key_name = _get_bucket_and_key_name(path)
                 if isinstance(data, str):
@@ -58,12 +69,16 @@ class DataLakeFacade:
     def delete_prefix(self, prefix: str):
         match self.conn.conn_type:
             case "wasb":
+                from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
+
                 assert isinstance(self.conn, WasbHook)
                 container_name, blob_prefix = _get_container_and_blob_name(prefix)
                 self.conn.delete_file(
                     container_name, blob_prefix, is_prefix=True, ignore_if_missing=True
                 )
             case "aws":
+                from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
                 assert isinstance(self.conn, S3Hook)
                 bucket_name, key_prefix = _get_bucket_and_key_name(prefix)
                 self.conn.get_bucket(bucket_name).objects.filter(
@@ -77,6 +92,8 @@ class DataLakeFacade:
     def check_prefix(self, prefix: str) -> bool:
         match self.conn.conn_type:
             case "wasb":
+                from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
+
                 assert isinstance(self.conn, WasbHook)
                 container_name, blob_prefix = _get_container_and_blob_name(prefix)
                 return bool(
@@ -85,6 +102,8 @@ class DataLakeFacade:
                     )
                 )
             case "aws":
+                from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
                 assert isinstance(self.conn, S3Hook)
                 bucket_name, key_prefix = _get_bucket_and_key_name(prefix)
                 object_list_at_bucket = list(
