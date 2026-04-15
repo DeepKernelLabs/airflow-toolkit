@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Raw data landed from JSONPlaceholder API via Airflow"
+    tables:
+      - name: posts
+      - name: comments
+      - name: users
+      - name: todos
+      - name: albums

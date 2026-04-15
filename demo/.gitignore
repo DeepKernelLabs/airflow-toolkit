@@ -1,0 +1,7 @@
+logs/
+!.env
+dbt/jsonplaceholder/target/
+dbt/jsonplaceholder/logs/
+dbt/jsonplaceholder/dbt_packages/
+dbt/.user.yml
+plugins/

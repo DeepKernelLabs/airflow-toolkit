@@ -1,0 +1,295 @@
+---
+# ============================================================
+#  airflow-toolkit  —  demo environment
+#
+#  Services:
+#    postgres           PostgreSQL 16
+#                         · airflow  (Airflow metadata DB)
+#                         · demo_dw  (data warehouse, schemas: raw / bronze / silver / gold)
+#    minio              S3-compatible data lake (console → localhost:9001)
+#    minio-init         one-shot: creates the 'raw' bucket
+#    airflow-init       one-shot: db migrate + admin user
+#    airflow-apiserver  → localhost:8080  (admin / admin)
+#    airflow-scheduler
+#    airflow-dag-processor
+#    airflow-triggerer
+#    dbt-docs           dbt documentation site → localhost:8082
+#    metabase           BI dashboard → localhost:3000
+#
+#  Quick start:
+#    docker compose up --build -d
+#    Open http://localhost:8080 → trigger the DAG
+#    Open http://localhost:8082 → dbt lineage & docs
+#    Open http://localhost:3000 → Metabase dashboard (gold layer)
+# ============================================================
+
+x-airflow-common: &airflow-common
+  build: .
+  image: ${AIRFLOW_IMAGE_NAME:-demo-airflow:latest}
+  env_file: .env
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://airflow-apiserver:8080/execution/"
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+    AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+    AIRFLOW__API__SECRET_KEY: "demo-secret-key-change-in-prod"
+    AIRFLOW__WEBSERVER__SECRET_KEY: "demo-secret-key-change-in-prod"
+    AIRFLOW__API_AUTH__JWT_SECRET: "demo-jwt-secret-change-in-prod"
+    AIRFLOW__WEBSERVER__BASE_URL: "http://localhost:8080"
+    # Makes airflow-toolkit importable from the mounted local source
+    PYTHONPATH: /opt/airflow/airflow_toolkit_src
+    # Pre-configured connections (no manual setup needed in the UI)
+    AIRFLOW_CONN_DEMO_HTTP: '{"conn_type": "http", "host": "jsonplaceholder.typicode.com", "schema": "https"}'
+    AIRFLOW_CONN_DEMO_MINIO: '{"conn_type": "aws", "login": "minio", "password": "miniominio", "extra": {"endpoint_url": "http://minio:9000", "region_name": "us-east-1"}}'
+    AIRFLOW_CONN_DEMO_POSTGRES: '{"conn_type": "postgres", "host": "postgres", "login": "dw_user", "password": "dw_password", "schema": "demo_dw", "port": 5432}'
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ./config:/opt/airflow/config
+    # Mount local library source so changes are reflected without rebuilding
+    - ../src:/opt/airflow/airflow_toolkit_src
+    # dbt project
+    - ./dbt:/opt/airflow/dbt
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+services:
+
+  # ----------------------------------------------------------
+  #  PostgreSQL — Airflow metadata + demo_dw data warehouse
+  # ----------------------------------------------------------
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-dw.sh:/docker-entrypoint-initdb.d/init-dw.sh
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-airflow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ----------------------------------------------------------
+  #  MinIO — S3-compatible data lake
+  # ----------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"   # S3 API endpoint
+      - "9001:9001"   # MinIO web console
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # One-shot: creates the 'raw' bucket on first run
+  minio-init:
+    image: minio/mc:latest
+    env_file: .env
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+        mc mb --ignore-existing local/$${MINIO_BUCKET};
+        echo 'Bucket ready: '$${MINIO_BUCKET};
+      "
+
+  # ----------------------------------------------------------
+  #  Airflow init — db migrate + create admin user
+  # ----------------------------------------------------------
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/{logs,dags,plugins,config}
+        chown -R "${AIRFLOW_UID}:0" /opt/airflow/
+        /entrypoint airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: admin
+    user: "0:0"
+    restart: "no"
+
+  # ----------------------------------------------------------
+  #  Airflow API server  →  http://localhost:8080
+  # ----------------------------------------------------------
+  airflow-apiserver:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: always
+
+  # ----------------------------------------------------------
+  #  Airflow scheduler
+  # ----------------------------------------------------------
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: always
+
+  # ----------------------------------------------------------
+  #  Airflow DAG processor (Airflow 3 — proceso separado)
+  # ----------------------------------------------------------
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type DagProcessorJob --hostname \"$${HOSTNAME}\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: always
+
+  # ----------------------------------------------------------
+  #  Airflow triggerer (para tareas deferibles)
+  # ----------------------------------------------------------
+  airflow-triggerer:
+    <<: *airflow-common
+    command: triggerer
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type TriggererJob --hostname \"$${HOSTNAME}\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: always
+
+  # ----------------------------------------------------------
+  #  dbt docs  →  http://localhost:8082
+  #  Generates and serves dbt documentation with lineage graph.
+  #  Restart after the DAG runs to get the full catalog:
+  #    docker compose restart dbt-docs
+  # ----------------------------------------------------------
+  dbt-docs:
+    build: .
+    image: ${AIRFLOW_IMAGE_NAME:-demo-airflow:latest}
+    working_dir: /opt/airflow/dbt/jsonplaceholder
+    entrypoint: >
+      /bin/bash -c "
+        /home/airflow/.local/bin/dbt docs generate --profiles-dir /opt/airflow/dbt;
+        /home/airflow/.local/bin/dbt docs serve --profiles-dir /opt/airflow/dbt --no-browser --host 0.0.0.0 --port 8082
+      "
+    volumes:
+      - ./dbt:/opt/airflow/dbt
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  # ----------------------------------------------------------
+  #  Metabase  →  http://localhost:3000
+  #  BI layer on top of the gold schema.
+  #  First-time setup: follow the web wizard (~2 min).
+  #  Connect to: Host=postgres, Port=5432, DB=demo_dw,
+  #              User=dw_user, Password=dw_password
+  # ----------------------------------------------------------
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - metabase-data:/metabase-data
+    environment:
+      MB_DB_TYPE: h2
+      MB_DB_FILE: /metabase-data/metabase.db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # One-shot: connects demo_dw, creates questions and dashboard in Metabase
+  metabase-init:
+    image: python:3.12-slim
+    env_file: .env
+    environment:
+      METABASE_URL: "http://metabase:3000"
+      MB_ADMIN_EMAIL: ${MB_ADMIN_EMAIL}
+      MB_ADMIN_PASSWORD: ${MB_ADMIN_PASSWORD}
+      DW_HOST: postgres
+      DW_PORT: "5432"
+    volumes:
+      - ./scripts:/scripts
+    command: python /scripts/setup_metabase.py
+    depends_on:
+      metabase:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  postgres-data:
+  minio-data:
+  metabase-data:

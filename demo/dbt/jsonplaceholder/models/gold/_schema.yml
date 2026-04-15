@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: gold__user_activity
+    description: "One row per user aggregating posts, comments, albums and todos."
+    columns:
+      - name: user_id
+        tests:
+          - unique
+          - not_null
+      - name: email
+        tests:
+          - unique
+          - not_null
+      - name: posts_count
+        tests:
+          - not_null
+      - name: comments_count
+        tests:
+          - not_null
+      - name: albums_count
+        tests:
+          - not_null
+      - name: todos_count
+        tests:
+          - not_null
+      - name: todos_completed
+        tests:
+          - not_null

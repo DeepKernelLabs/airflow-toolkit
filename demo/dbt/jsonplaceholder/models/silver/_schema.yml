@@ -1,0 +1,77 @@
+version: 2
+
+models:
+  - name: silver__posts
+    description: "Posts with typed columns and snake_case names."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver__users')
+                field: id
+
+  - name: silver__comments
+    description: "Comments with typed columns and snake_case names."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: post_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver__posts')
+                field: id
+
+  - name: silver__users
+    description: "Users with typed columns and snake_case names."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: email
+        tests:
+          - unique
+          - not_null
+
+  - name: silver__todos
+    description: "Todos with typed columns and snake_case names."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver__users')
+                field: id
+      - name: completed
+        tests:
+          - not_null
+
+  - name: silver__albums
+    description: "Albums with typed columns and snake_case names."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver__users')
+                field: id

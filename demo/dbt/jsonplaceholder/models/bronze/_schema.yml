@@ -1,0 +1,72 @@
+version: 2
+
+models:
+  - name: bronze__posts
+    description: "Posts deduplicated — one row per id from the latest partition."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: _ds
+        tests:
+          - not_null
+      - name: _loaded_at
+        tests:
+          - not_null
+
+  - name: bronze__comments
+    description: "Comments deduplicated — one row per id from the latest partition."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: _ds
+        tests:
+          - not_null
+      - name: _loaded_at
+        tests:
+          - not_null
+
+  - name: bronze__users
+    description: "Users deduplicated — one row per id from the latest partition."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: _ds
+        tests:
+          - not_null
+      - name: _loaded_at
+        tests:
+          - not_null
+
+  - name: bronze__todos
+    description: "Todos deduplicated — one row per id from the latest partition."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: _ds
+        tests:
+          - not_null
+      - name: _loaded_at
+        tests:
+          - not_null
+
+  - name: bronze__albums
+    description: "Albums deduplicated — one row per id from the latest partition."
+    columns:
+      - name: id
+        tests:
+          - unique
+          - not_null
+      - name: _ds
+        tests:
+          - not_null
+      - name: _loaded_at
+        tests:
+          - not_null
