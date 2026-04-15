@@ -5,8 +5,8 @@ Source:  https://jsonplaceholder.typicode.com  (public, no auth)
 Tables:  posts · comments · users · todos · albums
 
 DAG flow:
-    setup (TaskGroup)  — tareas en paralelo
-        ensure_datalake_prefix · ensure_database_schemas
+    setup (TaskGroup)  — tareas en secuencia
+        ensure_datalake_prefix → ensure_database_schemas
         ↓
     extract (TaskGroup)  — 5 entities en paralelo
         check_file (branch) → delete_file → extract_to_datalake

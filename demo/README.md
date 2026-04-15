@@ -4,7 +4,7 @@ End-to-end ELT pipeline using [airflow-toolkit](https://pypi.org/project/airflow
 
 **Stack:** Apache Airflow 3 · MinIO (S3) · PostgreSQL · dbt (via Cosmos) · Metabase
 
-**Pattern:** `JSONPlaceholder API → MinIO (datalake) → PostgreSQL raw → bronze → silver → gold → Metabase`
+**Pattern:** `JSONPlaceholder API → MinIO (raw) → PostgreSQL raw → bronze → silver → gold → Metabase`
 
 ---
 
@@ -47,7 +47,7 @@ docker compose up --build -d
 3. Click **Trigger DAG** (▶).
 4. Watch the run progress in the Grid or Graph view.
 5. The DAG runs three task groups in sequence:
-   - **setup** — ensures the MinIO prefix and the `raw` schema exist.
+   - **setup** — verifies the MinIO bucket is reachable, then creates schemas `raw`, `bronze`, `silver` and `gold` if they don't exist.
    - **extract** — downloads 5 entities from the JSONPlaceholder API and saves them as CSV in MinIO. If a file already exists it is deleted first (idempotent).
    - **load** — reads each CSV from MinIO and appends it to `raw.*` in PostgreSQL (with partition drop for idempotency).
    - **transform** — runs dbt via Cosmos: `bronze → silver → gold`, with tests after all models.
@@ -124,7 +124,7 @@ Schemas: `raw` · `bronze` · `silver` · `gold`
 JSONPlaceholder API  (public REST API, no auth)
          │
          ▼  HttpToFilesystem
-   MinIO / datalake /
+   MinIO / raw /
    jsonplaceholder / YYYY/MM/DD / {entity} / part0001.csv
          │
          ▼  FilesystemToDatabaseOperator

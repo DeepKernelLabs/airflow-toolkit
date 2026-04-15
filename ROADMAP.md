@@ -40,6 +40,7 @@ The following categories are explicitly **not supported**, because they bypass t
 | `FilesystemToIceberg` | Write files from any filesystem to an Apache Iceberg table. Symmetric counterpart to `FilesystemToDeltalake`. | M |
 | `IcebergToFilesystem` | Export Apache Iceberg table data to any filesystem. Symmetric counterpart to `DeltalakeToFilesystem`. | M |
 | `GraphQLToFilesystem` | First-class GraphQL support — query building, variable injection, cursor-based pagination. | M |
+| `FilesystemToWarehouseOperator` | Unified `COPY INTO` abstraction for columnar warehouses (Snowflake, Databricks, Redshift, BigQuery). One operator regardless of target. | L |
 | Incremental `FilesystemToFilesystem` | Copy only new/modified files based on timestamp or content hash, avoiding full re-processing of a prefix. | L |
 
 ---
@@ -89,6 +90,7 @@ The following categories are explicitly **not supported**, because they bypass t
 |------|-------------|--------|
 | Excel (`.xlsx`) | Add `source_format="excel"` to `FilesystemToDatabase` via pandas. Very common in enterprise environments. | S |
 | Avro | Standard format in Kafka/Confluent pipelines. | M |
+| ORC | Columnar format common in Hadoop/Hive ecosystems. | M |
 | XPath-aware XML | Current XML support is basic; add structured extraction via XPath expressions. | M |
 | Fixed-width files | Still common in legacy systems (banking, COBOL mainframes). | S |
 
