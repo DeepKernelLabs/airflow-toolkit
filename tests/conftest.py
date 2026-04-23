@@ -66,6 +66,7 @@ def fresh_airflow_db_per_test(tmp_path, monkeypatch):
     # export AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
     try:
         import connexion  # noqa: F401
+
         monkeypatch.setenv(
             "AIRFLOW__CORE__AUTH_MANAGER",
             "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager",
