@@ -1,6 +1,6 @@
 [project]
 name = "airflow-toolkit"
-version = "1.0.5"
+version = "1.0.6"
 description = "A toolkit of operators, hooks and utilities for Apache Airflow 2 and 3"
 authors = [{ name = "Biel Llobera", email = "biel_llobera@dkl.digital" }]
 requires-python = ">=3.10,<3.14"
@@ -37,7 +37,6 @@ airflow2 = [
 airflow3 = [
     "apache-airflow>=3,<4",
     "apache-airflow-providers-amazon>=9.15.0",
-    "sqlalchemy>=1.4,<2",
     "apache-airflow-providers-fab>=3.0.0",
     "pendulum>=3,<4",
     "apache-airflow-providers-google>=18",

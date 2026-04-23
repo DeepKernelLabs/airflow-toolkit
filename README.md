@@ -13,8 +13,8 @@
   <a href="https://opensource.org/licenses/Apache-2.0">
     <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="Badge 2"/>
   </a>
-  <a href="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue">
-    <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue" alt="Badge 3"/>
+  <a href="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue">
+    <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue" alt="Badge 3"/>
   </a>
 
   <br/><br/>
@@ -458,4 +458,4 @@ export S3_ENDPOINT_URL=http://localhost:9090
 poetry run pytest tests/ --junitxml=junit/test-results.xml
 ```
 
-The CI pipeline ([`.github/workflows/lint-and-test.yml`](.github/workflows/lint-and-test.yml)) runs the full matrix automatically on every push: Airflow 2 / Python 3.11, Airflow 3 / Python 3.11, and Airflow 3 / Python 3.12.
+The CI pipeline ([`.github/workflows/lint-and-test.yml`](.github/workflows/lint-and-test.yml)) runs the full matrix automatically on every push: Airflow 2 / Python 3.10, Airflow 2 / Python 3.11, Airflow 3 / Python 3.11, Airflow 3 / Python 3.12, and Airflow 3 / Python 3.13.
