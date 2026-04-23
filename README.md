@@ -20,219 +20,442 @@
   <br/><br/>
 </div>
 
-Collection of Operators, Hooks and utility functions aimed at facilitating ELT pipelines.
+Collection of operators, hooks and utilities for building ELT pipelines on Apache Airflow.
 
-## Overview
+---
 
-This is an opinionated library focused on ELT, which means that our goal is to facilitate loading data from various data sources into a data lake, as well as loading from a data lake to a data warehouse and running transformations inside a data warehouse.
+## Why airflow-toolkit?
 
-Airflow's operators notoriously suffer from an NxM problem, where if you have N data sources and M destinations you end up with NxM different operators (FTPToS3, S3ToFTP, PostgresToS3, FTPToPostgres etc.). We aim to mitigate this issue in two ways:
+### The modern ELT pattern
 
-1. **ELT focused:** cuts down on the number of possible sources and destinations, as we always want to do `source` -> `data lake` -> `data warehouse`.
-2. **Building common interfaces:** where possible we want to treat similar data sources in the same way. Airflow recently has done a good job at this by deprecating all specific SQL operators (`PostgresOperator`, `MySQLOperator`, etc.) in favour of a more generic `SQLExecuteQueryOperator` that works with any hook compatible with the dbapi2 interface. We take this philosophy and apply it any time we can, like providing a unified interface for all filesystem data sources that then enables us to have much more generic operators like `SQLToFilesystem`, `FilesystemToFilesystem`.
+Every data pipeline should follow a single direction:
 
-## Filesystem Interface/Protocol
+```
+Source  (API / SFTP / SQL database)
+  ↓  Extract
+Data Lake  (S3 / Azure Blob / GCS / ADLS / …)
+  ↓  Load
+Warehouse / Database  (Postgres / Databricks / Snowflake / …)
+```
 
-We provide a thin wrapper over many hooks for filesystem data sources. These wrappers use the hook's specific methods to implement some common methods that we then use inside the operators without needing to worry about the hook's specific type. For now we provide support for the following filesystem hooks, some of them native or that belong to other providers and others implemented in this library:
+The data lake layer is not optional. Every load leaves an immutable copy of the raw data **before** it reaches the warehouse. This gives you:
 
-- WasbHook (Blob Storage/ADLS)
-- S3Hook (S3)
-- SFTPHook (SFTP)
-- FSHook (Local Filesystem)
-- AzureFileShareServicePrincipalHook (Azure Fileshare with support for service principal authentication)
-- AzureDatabricksVolumeHook (Unity Catalog Columes)
+- **Free reprocessing** — if a transformation has a bug, re-run it from the raw files without calling the source API again.
+- **Full traceability** — every row in the warehouse can be traced back to the exact source file that produced it.
+- **Decoupled steps** — extraction and loading are independent tasks; each one can be retried or replaced without affecting the other.
 
-Operators can create the correct hook at runtime by passing a connection ID with a connection type of `aws` or `adls`. Example code:
+### The N×M operator problem
+
+Apache Airflow's built-in operators are point-to-point: one operator per source/destination pair (`FTPToS3Operator`, `S3ToFTPOperator`, `PostgresToS3Operator`, …). With **N sources** and **M destinations** you end up managing **N×M** operators, each with its own implementation and failure modes. Any cross-cutting change (authentication, retry logic, metadata columns) must be replicated across all of them.
+
+### Our solution
+
+`airflow-toolkit` solves this with two ideas:
+
+1. **A common `FilesystemProtocol`** — a thin, uniform interface over S3, Azure Blob, GCS, ADLS, SFTP, local filesystem, and Databricks Volumes. Operators talk to the protocol, not to the backend. Swapping backends requires no code change in the DAG.
+
+2. **Operators by technology family** — instead of one operator per combination, we provide generic operators (`XToFilesystem`, `FilesystemToX`) that work with any backend through the protocol. The matrix collapses from N×M to a handful of composable building blocks.
+
+---
+
+## Installation
+
+```bash
+pip install airflow-toolkit            # Airflow 2
+pip install airflow-toolkit[airflow3]  # Airflow 3
+```
+
+---
+
+## Design principles
+
+- **One data-flow direction:** `source → data lake → warehouse`. Every operation must follow one of two shapes: *Extract* (any source → filesystem) or *Load* (filesystem → warehouse).
+- **The filesystem layer is mandatory.** Every load must leave an auditable trace before reaching the warehouse.
+- **Out of scope:** direct database-to-database copies (`SQLToSQL`), warehouse maintenance operations (`VACUUM`, `OPTIMIZE`, `MERGE INTO`), data quality checks, and streaming ingestion. These either bypass the lake or belong to a separate tooling layer.
+
+---
+
+## Filesystem Protocol
+
+`FilesystemProtocol` is a common interface implemented for the following backends. The correct implementation is resolved at runtime from the Airflow connection's `conn_type`:
+
+| Backend | `conn_type` | Provider |
+|---|---|---|
+| Amazon S3 | `aws` | `apache-airflow-providers-amazon` |
+| Azure Blob Storage / ADLS | `wasb` | `apache-airflow-providers-microsoft-azure` |
+| Google Cloud Storage | `google_cloud_platform` | `apache-airflow-providers-google` |
+| SFTP | `sftp` | `apache-airflow-providers-sftp` |
+| Local filesystem | `fs` | built-in |
+| Azure File Share (Service Principal) | `azure_file_share_sp` | this library |
+| Databricks Unity Catalog Volume | `azure_databricks_volume` | this library |
+
+Operators resolve the backend automatically:
 
 ```python
-conn = BaseHook.get_connection(conn_id)
-hook = conn.get_hook()
+# S3 connection example
+AIRFLOW_CONN_MY_DATA_LAKE='{"conn_type": "aws", "extra": {"endpoint_url": "https://s3.amazonaws.com"}}'
+
+# Azure Blob connection example
+AIRFLOW_CONN_MY_DATA_LAKE='{"conn_type": "wasb", "extra": {"connection_string": "DefaultEndpointsProtocol=https;..."}}'
 ```
+
+Changing the connection's `conn_type` is all that is needed to switch backends — no operator code changes.
+
+---
 
 ## Operators
-### HTTP to Filesystem (Data Lake)
 
-Creates a
-Example usage:
+### HttpToFilesystem
+
+Calls an HTTP endpoint and writes the response to any filesystem. Supports pagination, JMESPath filtering, compression, and custom response transformations.
 
 ```python
+from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import HttpToFilesystem
+
 HttpToFilesystem(
-    task_id='test_http_to_data_lake',
-    http_conn_id='http_test',
-    data_lake_conn_id='data_lake_test',
-    data_lake_path=s3_bucket + '/source1/entity1/{{ ds }}/',
-    endpoint='/api/users',
+    task_id='fetch_orders',
+    http_conn_id='my_api',
+    filesystem_conn_id='my_data_lake',
+    filesystem_path='raw/orders/{{ ds }}/',
+    endpoint='/api/v1/orders',
     method='GET',
-    jmespath_expression='data[:2].{id: id, email: email}',
+    jmespath_expression='data',   # select the 'data' key from the JSON response
+    save_format='jsonl',
 )
 ```
+
+With cursor-based pagination:
+
+```python
+def next_page(response):
+    cursor = response.json().get('next_cursor')
+    if not cursor:
+        return None
+    return {'data': {'cursor': cursor}}
+
+HttpToFilesystem(
+    task_id='fetch_events',
+    http_conn_id='my_api',
+    filesystem_conn_id='my_data_lake',
+    filesystem_path='raw/events/{{ ds }}/',
+    endpoint='/api/v1/events',
+    method='POST',
+    data={'start_date': '{{ ds }}'},
+    pagination_function=next_page,
+    save_format='jsonl',
+)
+```
+
+### MultiHttpToFilesystem
+
+Runs multiple HTTP requests in a single Airflow task, saving each response as a separate file. Useful for fetching multiple entities or date ranges without creating one task per request.
+
+```python
+from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import MultiHttpToFilesystem
+
+MultiHttpToFilesystem(
+    task_id='fetch_reference_data',
+    http_conn_id='my_api',
+    filesystem_conn_id='my_data_lake',
+    filesystem_path='raw/reference/{{ ds }}/',
+    method='GET',
+    save_format='jsonl',
+    multi_requests=[
+        {'endpoint': '/api/v1/categories'},
+        {'endpoint': '/api/v1/statuses'},
+        {'endpoint': '/api/v1/regions'},
+    ],
+)
+```
+
+Each entry in `multi_requests` can override any base parameter (`endpoint`, `method`, `headers`, `data`, `jmespath_expression`, `save_format`, `compression`).
+
+### SQLToFilesystem
+
+Runs a SQL query against any `DbApiHook`-compatible database and writes the result as Parquet files to any filesystem.
+
+```python
+from airflow_toolkit.providers.filesystem.operators.filesystem import SQLToFilesystem
+
+SQLToFilesystem(
+    task_id='export_orders',
+    source_sql_conn_id='my_postgres',
+    destination_fs_conn_id='my_data_lake',
+    sql="SELECT * FROM orders WHERE updated_at::date = '{{ ds }}'",
+    destination_path='raw/orders/{{ ds }}/',
+)
+```
+
+For large tables, use `batch_size` to write multiple Parquet part files:
+
+```python
+SQLToFilesystem(
+    task_id='export_large_table',
+    source_sql_conn_id='my_postgres',
+    destination_fs_conn_id='my_data_lake',
+    sql='SELECT * FROM events',
+    destination_path='raw/events/{{ ds }}/',
+    batch_size=100_000,
+)
+```
+
+### FilesystemToFilesystem
+
+Copies files between any two filesystem backends. Because both sides use `FilesystemProtocol`, switching a backend requires only changing the connection — not the operator.
+
+```python
+from airflow_toolkit.providers.filesystem.operators.filesystem import FilesystemToFilesystem
+
+FilesystemToFilesystem(
+    task_id='landing_to_raw',
+    source_fs_conn_id='sftp_source',       # any supported conn_type
+    destination_fs_conn_id='s3_data_lake', # any supported conn_type
+    source_path='exports/{{ ds }}/',
+    destination_path='raw/exports/{{ ds }}/',
+)
+```
+
+Replace `sftp_source` with an Azure Blob connection and the rest of the DAG stays unchanged.
+
+An optional `data_transformation` callable lets you process each file in-flight:
+
+```python
+def decompress_and_decode(data: bytes, filename: str, context: dict) -> bytes:
+    import gzip
+    return gzip.decompress(data)
+
+FilesystemToFilesystem(
+    task_id='decompress_files',
+    source_fs_conn_id='sftp_source',
+    destination_fs_conn_id='s3_data_lake',
+    source_path='exports/{{ ds }}/',
+    destination_path='raw/exports/{{ ds }}/',
+    data_transformation=decompress_and_decode,
+)
+```
+
+### FilesystemToDatabase
+
+Reads files (CSV, JSON, or Parquet) from any filesystem and loads them into any SQLAlchemy-compatible database. Handles schema drift automatically: columns present in the file but missing from the table are added; columns present in the table but missing from the file are filled with `NULL`.
+
+```python
+from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import FilesystemToDatabaseOperator
+
+FilesystemToDatabaseOperator(
+    task_id='load_orders',
+    filesystem_conn_id='my_data_lake',     # any supported conn_type
+    database_conn_id='my_postgres',        # any SQLAlchemy-compatible connection
+    filesystem_path='raw/orders/{{ ds }}/',
+    db_schema='public',
+    db_table='orders',
+    source_format='csv',
+    table_aggregation_type='append',       # 'append' | 'replace' | 'fail'
+    metadata={
+        '_ds':          '{{ ds }}',
+        '_loaded_at':   '{{ dag_run.start_date.isoformat() }}',
+    },
+    include_source_path=True,              # adds _LOADED_FROM column for traceability
+)
+```
+
+### DuckdbToDeltalake
+
+Executes a DuckDB SQL query and writes the result directly to a Delta Lake table on Azure storage. Useful for in-process transformations that land results as an open table format.
+
+```python
+from airflow_toolkit.providers.deltalake.operators.duckdb_to_deltalake import DuckdbToDeltalakeOperator
+
+DuckdbToDeltalakeOperator(
+    task_id='transform_to_delta',
+    duckdb_conn_id='my_duckdb',
+    delta_lake_conn_id='my_azure_storage',
+    source_query="""
+        SELECT
+            order_id,
+            customer_id,
+            total_amount,
+            created_at::DATE AS order_date
+        FROM read_parquet('az://my-container/raw/orders/{{ ds }}/*.parquet')
+    """,
+    table_path='az://my-container/delta/orders',
+    write_mode='append',   # 'append' | 'overwrite' | 'error' | 'ignore'
+    extensions=['azure'],
+)
+```
+
+---
 
 ## Sensors
 
-### Filesystem (generic) File Sensor
-This sensor checks if a file exists in a generic filesystem.
-Type of filesystem is determined by the connection type.
+### FilesystemFileSensor
 
-Current supported filesystem connections are (`conn_type` parameter):
+Waits until a file exists in any supported filesystem. The backend is resolved from the connection's `conn_type`.
 
-- `aws` (s3)
-- `azure_databricks_volume`
-- `azure_file_share_sp`
-- `sftp`
-- `fs` (LocalFileSystem)
-- `google_cloud_platform`
-- `wasb` (BlobStorageFilesystem)
-
-For example, with a connection with a S3 filesystem:
-
-```bash
-AIRFLOW_CONN_TEST_S3_FILESYSTEM='{"conn_type": "aws", "extra": {"endpoint_url": "http://localhost:9090"}}'
-```
-
-You can use a sensor like this:
 ```python
+from airflow_toolkit.providers.deltalake.sensors.filesystem_file import FilesystemFileSensor
+
 FilesystemFileSensor(
-    task_id='check_file_existence_exist_in_s3',
-    filesystem_conn_id='test_s3_filesystem',
-    source_path='data_lake/2023/10/01/test.csv',
+    task_id='wait_for_daily_export',
+    filesystem_conn_id='my_data_lake',
+    source_path='raw/orders/{{ ds }}/_SUCCESS',
     poke_interval=60,
-    timeout=300,
+    timeout=3600,
 )
 ```
 
-#### JMESPATH expressions
-APIs often return the response we are interested in wrapped in a key. JMESPATH expressions are a query language that we can use to select the response we are interested in. You can find more information on JMESPATH expressions and test them [here](https://jmespath.org/).
+Supported `conn_type` values: `aws`, `wasb`, `google_cloud_platform`, `sftp`, `fs`, `azure_file_share_sp`, `azure_databricks_volume`.
 
-The above expression selects the first two objects inside the key data, and then only the `id` and `email` attributes in each object. An example response can be found [here](https://reqres.in/api/users).
+---
 
-## Tests
-### Integration tests
-To guarantee that the library works as intended we have an integration test that attempts to install it in a fresh virtual environment, and we aim to have a test for each Operator.
+## Hooks
 
-#### Running integration tests locally
-The `lint-and-test.yml` [workflow](.github/workflows/lint-and-test.yml) sets up the necessary environment variables, but if you want to run them locally you will need the following environment variables:
+### AzureFileShareServicePrincipalHook
 
-```shell
-AIRFLOW_CONN_DATA_LAKE_TEST='{"conn_type": "aws", "extra": {"endpoint_url": "http://localhost:9090"}}'
-AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-AWS_DEFAULT_REGION=us-east-1
-TEST_BUCKET=data_lake
-S3_ENDPOINT_URL=http://localhost:9090
+Connects to Azure File Share using a Service Principal (client credentials flow). Use `conn_type: azure_file_share_sp`.
 
-AIRFLOW_CONN_DATA_LAKE_TEST='{"conn_type": "aws", "extra": {"endpoint_url": "http://localhost:9090"}}' AIRFLOW_CONN_SFTP_TEST='{"conn_type": "sftp", "host": "localhost", "port": 22, "login": "test_user", "password": "pass"}' AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY TEST_BUCKET=data_lake S3_ENDPOINT_URL=http://localhost:9090 poetry run pytest tests/ --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
-AIRFLOW_CONN_SFTP_TEST='{"conn_type": "sftp", "host": "localhost", "port": 22, "login": "test_user", "password": "pass"}'
+```python
+AIRFLOW_CONN_MY_FILE_SHARE='{
+  "conn_type": "azure_file_share_sp",
+  "host": "<storage-account>.file.core.windows.net",
+  "login": "<service-principal-client-id>",
+  "password": "<service-principal-secret>",
+  "extra": {
+    "tenant_id": "<tenant-id>",
+    "share_name": "<share-name>",
+    "protocol": "https"
+  }
+}'
 ```
 
-And you also need to run [Adobe's S3 mock container](https://github.com/adobe/S3Mock) like this:
+Once the connection is defined, pass it as `filesystem_conn_id` to any operator.
 
-```shell
-docker run --rm -p 9090:9090 -e initialBuckets=data_lake -e debug=true -t adobe/s3mock
+### AzureDatabricksVolumeHook
+
+Provides access to Databricks Unity Catalog Volumes as a filesystem backend. Use `conn_type: azure_databricks_volume`.
+
+### AzureDatabricksSqlHook
+
+A `DbApiHook`-compatible hook for running SQL against Databricks SQL Warehouses via a Service Principal. Use `conn_type: azure_databricks_sql`.
+
+```python
+AIRFLOW_CONN_MY_DATABRICKS='{
+  "conn_type": "azure_databricks_sql",
+  "host": "<workspace>.azuredatabricks.net",
+  "login": "<service-principal-client-id>",
+  "password": "<service-principal-secret>",
+  "extra": {
+    "http_path": "/sql/1.0/warehouses/<warehouse-id>",
+    "catalog": "my_catalog",
+    "schema": "my_schema"
+  }
+}'
 ```
 
-and the SFTP container like this:
+Because `AzureDatabricksSqlHook` implements `DbApiHook`, it can be used as `source_sql_conn_id` in `SQLToFilesystem`.
 
-```shell
-docker run -p 22:22 -d atmoz/sftp test_user:pass:::root_folder
-```
+---
 
+## Notifications
 
-### Notifications
+### Slack (incoming webhook)
 
-#### Slack (incoming webhook)
+Send DAG or task failure alerts to a Slack channel using `dag_failure_slack_notification_webhook`. Requires a Slack App with Incoming Webhooks enabled.
 
-If your or your team are using slack, you can send and receive notifications about failed dags using `dag_failure_slack_notification_webhook` method
-(in `notifications.slack.webhook`). You need to create a new Slack App and enable the "Incoming Webhooks". More info about sending messages using
-Slack Incoming Webhooks [here](https://api.slack.com/messaging/webhooks).
+Create an Airflow connection named `SLACK_WEBHOOK_NOTIFICATION_CONN` (or set `AIRFLOW_CONN_SLACK_WEBHOOK_NOTIFICATION_CONN`).
 
-You need to create a new Airflow connection with the name `SLACK_WEBHOOK_NOTIFICATION_CONN` (or `AIRFLOW_CONN_SLACK_WEBHOOK_NOTIFICATION_CONN`
-if you are using environment variables.)
-
-Default message will have the format below:
-
-![image](https://github.com/DeepKernelLabs/airflow-toolkit/assets/152852247/52a5bf95-21bc-4c3b-8093-79953c0c5d61)
-
-But you can custom this message providing the below parameters:
-
-* **_text (str)[optional]:_** the main message will appear in the notification. If you provide your slack block will be ignored.
-* **_blocks (dict)[optional]:_** you can provide your custom slack blocks for your message.
-* **_include_blocks (bool)[optional]:_** indicates if the default block have to be used. If you provide your own blocks will be ignored.
-* **_source (typing.Literal['DAG', 'TASK'])[optional]:_** source of the failure (dag or task). Default: `DAG`.
-* **_image_url: (str)[optional]_** image url for you notification (`accessory`). You can use `AIRFLOW_TOOLKIT__SLACK_NOTIFICATION_IMG_URL` instead.
-
-##### Example of use in a Dag
+#### DAG-level notification
 
 ```python
 from datetime import datetime, timedelta
-
 from airflow import DAG
-
 from airflow.operators.bash import BashOperator
-from airflow_toolkit.notifications.slack.webhook import (
-    dag_failure_slack_notification_webhook,    # <--- IMPORT
-)
+from airflow_toolkit.notifications.slack.webhook import dag_failure_slack_notification_webhook
 
 with DAG(
-    "slack_notification_dkl",
-    description="Slack notification on fail",
+    'my_pipeline',
     schedule=timedelta(days=1),
-    start_date=datetime(2021, 1, 1),
+    start_date=datetime(2024, 1, 1),
     catchup=False,
-    tags=["example"],
-    on_failure_callback=dag_failure_slack_notification_webhook(),  # <--- HERE
+    on_failure_callback=dag_failure_slack_notification_webhook(),
 ) as dag:
 
-    t = BashOperator(
-        task_id="failing_test",
-        depends_on_past=False,
-        bash_command="exit 1",
-        retries=1,
-    )
-
-
-if __name__ == "__main__":
-    dag.test()
+    t = BashOperator(task_id='run', bash_command='python my_script.py')
 ```
 
-You can used only in a task providing the parameter `source='TASK'`:
+#### Task-level notification
 
 ```python
-    t = BashOperator(
-        task_id="failing_test",
-        depends_on_past=False,
-        bash_command="exit 1",
-        retries=1,
-        on_failure_callback=dag_failure_slack_notification_webhook(source='TASK')
-    )
+BashOperator(
+    task_id='run',
+    bash_command='python my_script.py',
+    on_failure_callback=dag_failure_slack_notification_webhook(source='TASK'),
+)
 ```
 
-You can add a custom message (ignoring the slack blocks for a formatted message):
+#### Custom message
 
 ```python
-with DAG(
-    ...
-    on_failure_callback=dag_failure_slack_notification_webhook(
-        text='The task {{ ti.task_id }} failed',
-        include_blocks=False
-    ),
-) as dag:
+on_failure_callback=dag_failure_slack_notification_webhook(
+    text='Pipeline {{ dag.dag_id }} failed on {{ ds }}',
+    include_blocks=False,
+)
 ```
 
-Or you can pass your own Slack blocks:
+#### Custom Slack blocks
 
 ```python
-custom_slack_blocks = {
-    "type": "section",
-    "text": {
-        "type": "mrkdwn",
-        "text": "<https://api.slack.com/reference/block-kit/block|This is an example using custom Slack blocks>"
+on_failure_callback=dag_failure_slack_notification_webhook(
+    blocks={
+        'type': 'section',
+        'text': {'type': 'mrkdwn', 'text': '*Pipeline failed* — check the logs.'},
     }
-}
-
-with DAG(
-    ...
-    on_failure_callback=dag_failure_slack_notification_webhook(
-        blocks=custom_slack_blocks
-    ),
-) as dag:
+)
 ```
+
+Default notification format:
+
+![image](https://github.com/DeepKernelLabs/airflow-toolkit/assets/152852247/52a5bf95-21bc-4c3b-8093-79953c0c5d61)
+
+**Parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `text` | `str` (optional) | Plain-text message. Overrides blocks if provided. |
+| `blocks` | `dict` (optional) | Custom Slack Block Kit payload. |
+| `include_blocks` | `bool` (optional) | Whether to include the default formatted block. |
+| `source` | `'DAG'` \| `'TASK'` (optional) | Source of the failure. Default: `'DAG'`. |
+| `image_url` | `str` (optional) | Accessory image URL. Can also be set via `AIRFLOW_TOOLKIT__SLACK_NOTIFICATION_IMG_URL`. |
+
+---
+
+## Running Tests
+
+### Integration tests
+
+Integration tests install the library in a clean virtual environment and exercise each operator end-to-end. You need Docker running locally.
+
+Start the required containers:
+
+```bash
+# S3-compatible mock (Adobe S3Mock)
+docker run --rm -p 9090:9090 -e initialBuckets=data_lake -e debug=true adobe/s3mock
+
+# SFTP server
+docker run -p 22:22 -d atmoz/sftp test_user:pass:::root_folder
+```
+
+Set the required environment variables and run the test suite:
+
+```bash
+export AIRFLOW_CONN_DATA_LAKE_TEST='{"conn_type": "aws", "extra": {"endpoint_url": "http://localhost:9090"}}'
+export AIRFLOW_CONN_SFTP_TEST='{"conn_type": "sftp", "host": "localhost", "port": 22, "login": "test_user", "password": "pass"}'
+export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+export AWS_DEFAULT_REGION=us-east-1
+export TEST_BUCKET=data_lake
+export S3_ENDPOINT_URL=http://localhost:9090
+
+poetry run pytest tests/ --junitxml=junit/test-results.xml
+```
+
+The CI pipeline ([`.github/workflows/lint-and-test.yml`](.github/workflows/lint-and-test.yml)) runs the full matrix automatically on every push: Airflow 2 / Python 3.11, Airflow 3 / Python 3.11, and Airflow 3 / Python 3.12.

@@ -41,11 +41,15 @@ jobs:
       matrix:
         include:
           - AIRFLOW_VERSION: 'airflow2'
+            python-version: '3.10'
+          - AIRFLOW_VERSION: 'airflow2'
             python-version: '3.11'
           - AIRFLOW_VERSION: 'airflow3'
             python-version: '3.11'
           - AIRFLOW_VERSION: 'airflow3'
             python-version: '3.12'
+          - AIRFLOW_VERSION: 'airflow3'
+            python-version: '3.13'
 
     name: test (${{ matrix.AIRFLOW_VERSION }}, python ${{ matrix.python-version }})
 
