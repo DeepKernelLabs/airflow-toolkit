@@ -23,7 +23,7 @@ def sqlite_database(tmp_path) -> str:
     db_file_path = tmp_path / "test.db"
     url = f"sqlite:///{db_file_path}"
     engine = create_engine(url)
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         conn.execute(text("DROP TABLE IF EXISTS TESTING"))
         conn.execute(
             text(
@@ -35,5 +35,4 @@ def sqlite_database(tmp_path) -> str:
         conn.execute(text('INSERT INTO TESTING (name, age) VALUES ("Mary", 35)'))
         conn.execute(text('INSERT INTO TESTING (name, age) VALUES ("Tommy", 40)'))
         conn.execute(text('INSERT INTO TESTING (name, age) VALUES ("Jerry", 45)'))
-        conn.commit()
     return db_file_path
