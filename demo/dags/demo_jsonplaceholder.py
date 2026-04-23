@@ -18,6 +18,7 @@ DAG flow:
     transform (DbtTaskGroup via Cosmos)
         bronze__*  →  silver__*  →  gold__user_activity
 """
+
 from __future__ import annotations
 
 import io
@@ -28,7 +29,13 @@ from airflow.decorators import dag
 from airflow.operators.python import BranchPythonOperator, PythonOperator
 from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 from airflow.utils.task_group import TaskGroup
-from cosmos import DbtTaskGroup, ExecutionConfig, ProfileConfig, ProjectConfig, RenderConfig
+from cosmos import (
+    DbtTaskGroup,
+    ExecutionConfig,
+    ProfileConfig,
+    ProjectConfig,
+    RenderConfig,
+)
 from cosmos.constants import LoadMode, TestBehavior
 from cosmos.profiles import PostgresUserPasswordProfileMapping
 
@@ -117,7 +124,6 @@ def s3_key(entity: str, ds: str) -> str:
     },
 )
 def demo_pipeline():
-
     # ------------------------------------------------------------------ #
     #  0. Setup — garantías previas al pipeline                           #
     #     Las dos tareas son independientes y corren en paralelo           #
@@ -166,7 +172,9 @@ def demo_pipeline():
                     fs = FilesystemFactory.get_data_lake_filesystem(
                         connection=BaseHook.get_connection(S3_CONN_ID)
                     )
-                    ds = context.get("ds") or context["logical_date"].strftime("%Y-%m-%d")
+                    ds = context.get("ds") or context["logical_date"].strftime(
+                        "%Y-%m-%d"
+                    )
                     file_path = f"{BUCKET}/{s3_key(entity_name, ds)}"
                     if fs.check_file(file_path):
                         return f"extract.{entity_name}.delete_file"
@@ -208,7 +216,6 @@ def demo_pipeline():
     #       check_file → drop_partition → load_to_raw                     #
     # ------------------------------------------------------------------ #
     with TaskGroup("load") as tg_load:
-
         for entity in ENTITIES:
             with TaskGroup(entity):
                 entity_path = f"{BASE_PATH}/{entity}/"
