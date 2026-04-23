@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -129,12 +130,14 @@ def test_s3_connection_available(tmp_path):
     airflow_home.mkdir(exist_ok=True)
     env = make_env(Path(sys.executable).parent.parent, airflow_home)
 
-    airflow_version = subprocess.check_output(
-        [str(airflow_bin), "version"], env=env, text=True
-    ).strip()
+    version_output = subprocess.check_output(
+        [str(airflow_bin), "version"], env=env, text=True, stderr=subprocess.STDOUT
+    )
+    match = re.search(r"\b(\d+)\.\d+\.\d+", version_output)
+    major = int(match.group(1)) if match else 0
     db_cmd = (
         [str(airflow_bin), "db", "migrate"]
-        if airflow_version.startswith("3.")
+        if major >= 3
         else [str(airflow_bin), "db", "init"]
     )
     subprocess.check_call(db_cmd, env=env)
