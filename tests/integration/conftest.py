@@ -1,6 +1,5 @@
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy_utils import create_database as _create_database
+from sqlalchemy import create_engine, text
 
 from airflow_toolkit._compact.airflow_shim import BaseHook
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
@@ -24,16 +23,17 @@ def sqlite_database(tmp_path) -> str:
     db_file_path = tmp_path / "test.db"
     url = f"sqlite:///{db_file_path}"
     engine = create_engine(url)
-    _create_database(engine.url)
-
-    engine.execute("DROP TABLE IF EXISTS TESTING")
-    engine.execute(
-        "CREATE TABLE TESTING (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)"
-    )
-    engine.execute('INSERT INTO TESTING (name, age) VALUES ("John", 25)')
-    engine.execute('INSERT INTO TESTING (name, age) VALUES ("Jane", 30)')
-    engine.execute('INSERT INTO TESTING (name, age) VALUES ("Mary", 35)')
-    engine.execute('INSERT INTO TESTING (name, age) VALUES ("Tommy", 40)')
-    engine.execute('INSERT INTO TESTING (name, age) VALUES ("Jerry", 45)')
-
+    with engine.connect() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS TESTING"))
+        conn.execute(
+            text(
+                "CREATE TABLE TESTING (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)"
+            )
+        )
+        conn.execute(text('INSERT INTO TESTING (name, age) VALUES ("John", 25)'))
+        conn.execute(text('INSERT INTO TESTING (name, age) VALUES ("Jane", 30)'))
+        conn.execute(text('INSERT INTO TESTING (name, age) VALUES ("Mary", 35)'))
+        conn.execute(text('INSERT INTO TESTING (name, age) VALUES ("Tommy", 40)'))
+        conn.execute(text('INSERT INTO TESTING (name, age) VALUES ("Jerry", 45)'))
+        conn.commit()
     return db_file_path
