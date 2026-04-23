@@ -224,7 +224,7 @@ wheels = [
 
 [[package]]
 name = "airflow-toolkit"
-version = "1.0.4"
+version = "1.0.5"
 source = { editable = "." }
 dependencies = [
     { name = "databricks-sdk" },
@@ -5953,10 +5953,10 @@ name = "pandas"
 version = "2.1.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
+    "python_full_version >= '3.13'",
     "python_full_version == '3.12.*'",
     "python_full_version == '3.11.*'",
     "python_full_version < '3.11'",
-    "python_full_version >= '3.13'",
 ]
 dependencies = [
     { name = "numpy", marker = "python_full_version < '3.13' or extra == 'extra-15-airflow-toolkit-airflow2'" },

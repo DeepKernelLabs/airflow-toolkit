@@ -60,7 +60,7 @@ jobs:
       AWS_ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE
       AWS_SECRET_ACCESS_KEY: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
       AWS_DEFAULT_REGION: us-east-1
-      TEST_BUCKET: data_lake
+      TEST_BUCKET: data-lake
       S3_ENDPOINT_URL: http://localhost:9090
       AWS_S3_ADDRESSING_STYLE: path
       AWS_USE_EXPECT_HEADER: false
@@ -90,7 +90,7 @@ jobs:
           fi
 
       - name: Start S3/Mock server
-        run: docker run -d --name test-s3mock --rm -p 9090:9090 -e initialBuckets=data_lake -e debug=true -t adobe/s3mock
+        run: docker run -d --name test-s3mock --rm -p 9090:9090 -e initialBuckets=data-lake -e debug=true -t adobe/s3mock
 
       - name: Start SFTP server
         run: docker run -p 2222:22 -d --name test-sftp atmoz/sftp test_user:pass:::root_folder

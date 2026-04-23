@@ -123,28 +123,26 @@ def test_import_package(virtual_environment, project_path, tmp_path, af_version)
         )
 
 
-# TODO, test connection in both env, airflow2 and airflow3
-def test_s3_connection_available(virtual_environment, tmp_path):
+def test_s3_connection_available(tmp_path):
+    airflow_bin = Path(sys.executable).parent / "airflow"
     airflow_home = tmp_path / "af_home"
     airflow_home.mkdir(exist_ok=True)
-    env = make_env(virtual_environment, airflow_home)
+    env = make_env(Path(sys.executable).parent.parent, airflow_home)
 
-    # init DB — AF3 uses "db migrate", AF2 uses "db init"
     airflow_version = subprocess.check_output(
-        ["airflow", "version"], env=env, text=True
+        [str(airflow_bin), "version"], env=env, text=True
     ).strip()
     db_cmd = (
-        ["airflow", "db", "migrate"]
+        [str(airflow_bin), "db", "migrate"]
         if airflow_version.startswith("3.")
-        else ["airflow", "db", "init"]
+        else [str(airflow_bin), "db", "init"]
     )
     subprocess.check_call(db_cmd, env=env)
 
     output = subprocess.check_output(
-        ["airflow", "connections", "get", "data_lake_test"],
+        [str(airflow_bin), "connections", "get", "data_lake_test"],
         env=env,
         universal_newlines=True,
     )
 
-    print("AIRFLOW OUTPUT:", output)  # Helpful for debugging
     assert "data_lake_test" in output

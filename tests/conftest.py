@@ -6,6 +6,7 @@ import subprocess
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
 import pendulum
 import pytest
 
@@ -63,10 +64,14 @@ def fresh_airflow_db_per_test(tmp_path, monkeypatch):
     # Make sure we don't accidentally inherit any external config
     monkeypatch.delenv("AIRFLOW__CORE__SQL_ALCHEMY_CONN", raising=False)
     # export AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
-    monkeypatch.setenv(
-        "AIRFLOW__CORE__AUTH_MANAGER",
-        "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager",
-    )
+    try:
+        import connexion  # noqa: F401
+        monkeypatch.setenv(
+            "AIRFLOW__CORE__AUTH_MANAGER",
+            "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager",
+        )
+    except ImportError:
+        pass
 
     monkeypatch.setenv("AIRFLOW__CORE__STORE_SERIALIZED_DAGS", "False")
     monkeypatch.setenv("AIRFLOW__CORE__STORE_DAG_CODE", "False")
@@ -129,10 +134,15 @@ def dag():
 
 @pytest.fixture
 def s3_bucket(s3_resource):
-    """Delete all objects in the specified S3 bucket."""
     bucket_name = os.environ["TEST_BUCKET"]
     bucket = s3_resource.Bucket(bucket_name)
-    bucket.objects.all().delete()
+    try:
+        bucket.objects.all().delete()
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "NoSuchBucket":
+            bucket.create()
+        else:
+            raise
     return bucket_name
 
 
