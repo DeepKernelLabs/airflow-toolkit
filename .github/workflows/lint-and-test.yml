@@ -30,6 +30,12 @@ jobs:
       - name: Install dependencies (uv)
         run: uv sync --locked --dev
 
+      - name: Cache pre-commit environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
       - name: Run pre-commit (ruff + mypy)
         run: uv run pre-commit run --all-files
 
