@@ -10,17 +10,14 @@ from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import
 from airflow_toolkit._compact.airflow_shim import (
     BaseHook,
     get_connection_hook,
-    is_airflow3,
     run_dag,
 )
 
-# FilesystemToDatabaseOperator uses SQLite connections inside dag.test(). In
-# Airflow 3, task execution requires a supervisor process to initialise
-# SUPERVISOR_COMMS; dag.test() does not provide one, so any operator that
-# touches connections or XCom at task-execution time raises ImportError.
-pytestmark = pytest.mark.skipif(
-    is_airflow3,
-    reason="Requires supervisor process not available in dag.test() on Airflow 3",
+# FilesystemToDatabaseOperator uses SQLite connections inside dag.test(). Airflow 3
+# task execution requires a running supervisor process (SUPERVISOR_COMMS); dag.test()
+# does not provide one, so operators that touch connections at execution time fail.
+pytestmark = pytest.mark.skip(
+    reason="dag.test() requires supervisor process not available outside Airflow 3 task execution"
 )
 
 

@@ -13,20 +13,14 @@ class SFTPFilesystem(FilesystemProtocol):
 
     @contextmanager
     def _conn(self) -> Generator:
-        """Yield an SFTP client, using managed connections when available.
+        """Yield an SFTP client via get_managed_conn() (reference-counted).
 
-        Provider >=5.x (AF3) decorates hook methods with @handle_connection_management,
-        which opens and closes the underlying SFTP transport per call. After each call
-        self.conn is left pointing to a closed client, so get_conn() returns a stale
-        object. Using get_managed_conn() (reference-counted) avoids this by always
-        opening a fresh connection. Provider <5.x (AF2) lacks get_managed_conn, so
-        we fall back to get_conn().
+        providers-sftp >=5.x decorates hook methods with @handle_connection_management,
+        which closes the underlying transport after each call. get_managed_conn() keeps
+        the connection open for the duration of the context manager.
         """
-        if hasattr(self.hook, "get_managed_conn"):
-            with self.hook.get_managed_conn() as conn:
-                yield conn
-        else:
-            yield self.hook.get_conn()
+        with self.hook.get_managed_conn() as conn:
+            yield conn
 
     def read(self, path: str) -> bytes:
         out = BytesIO()

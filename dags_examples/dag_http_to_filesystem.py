@@ -37,8 +37,7 @@ Setup Instructions
    aws configure set default.s3.use_expect_header false
 
 3. Reset Airflow if needed:
-   uv run airflow db init #for airflow2
-   uv run airflow db migrate #for airflow3
+   uv run airflow db migrate
 
 4. Symlink DAG into airflow:
    ln -s <absolute_path_to_project>/a_testing ~/airflow/dags/a_testing

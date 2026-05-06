@@ -5,10 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, Literal
 import jmespath
 import pandas as pd
 
-try:
-    from airflow.providers.http.operators.http import HttpOperator
-except ImportError:
-    from airflow.providers.http.operators.http import SimpleHttpOperator as HttpOperator
+from airflow.providers.http.operators.http import HttpOperator
 
 import logging
 

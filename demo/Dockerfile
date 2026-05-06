@@ -1,4 +1,4 @@
-FROM apache/airflow:3.1.2-python3.12
+FROM apache/airflow:3.2.1-python3.12
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
@@ -28,5 +28,6 @@ RUN pip install --no-cache-dir \
     "pendulum>=3,<4" \
     "pandas>=2.1.1,<3" \
     "requests>=2.31.0" \
+    "jmespath>=1.0.1,<2" \
     "dbt-postgres>=1.9.0,<2" \
     "astronomer-cosmos>=1.11.0,<2"

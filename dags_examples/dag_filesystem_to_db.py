@@ -28,8 +28,7 @@ Setup Instructions
    echo -e "a,b\n1,x\n2,y\n3,z" > ./dags_examples/test.csv
 
 2. Reset Airflow if needed:
-   uv run airflow db init     # for airflow2
-   uv run airflow db migrate  # for airflow3
+   uv run airflow db migrate
 
 3. Symlink DAG into airflow:
    ln -s ./airflow-toolkit/dags_examples ~/airflow/dags/dags_examples
@@ -65,15 +64,10 @@ from airflow_toolkit._compact.airflow_shim import (
     BaseHook,
     BaseOperator,
     DAG,
-    is_airflow3,
 )
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
+from airflow.providers.standard.operators.empty import EmptyOperator
 from sqlalchemy.engine import URL, create_engine
-
-if is_airflow3:
-    from airflow.providers.standard.operators.empty import EmptyOperator
-else:
-    from airflow.operators.empty import EmptyOperator
 
 
 class DebugFilesystemOperator(BaseOperator):

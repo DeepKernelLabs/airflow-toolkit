@@ -13,8 +13,8 @@
   <a href="https://opensource.org/licenses/Apache-2.0">
     <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="Badge 2"/>
   </a>
-  <a href="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue">
-    <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue" alt="Badge 3"/>
+  <a href="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue">
+    <img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue" alt="Badge 3"/>
   </a>
 
   <br/><br/>
@@ -60,10 +60,34 @@ Apache Airflow's built-in operators are point-to-point: one operator per source/
 
 ## Installation
 
+`airflow-toolkit` requires Python 3.11–3.13 and Apache Airflow 3. Install the `airflow3` extra and only the provider extras you actually use:
+
 ```bash
-pip install airflow-toolkit            # Airflow 2
-pip install airflow-toolkit[airflow3]  # Airflow 3
+# Databricks only — no cloud provider deps
+pip install "airflow-toolkit[airflow3,databricks]"
+
+# S3 + HTTP
+pip install "airflow-toolkit[airflow3,amazon,http]"
+
+# Everything
+pip install "airflow-toolkit[airflow3-full]"
 ```
+
+### Available extras
+
+| Extra | Installs | Use when |
+|---|---|---|
+| `airflow3` | `apache-airflow>=3`, `providers-fab`, `pendulum` | **Required** when combining individual extras |
+| `databricks` | `databricks-sdk`, `databricks-sql-connector`, `deltalake`, `pandas` | Databricks Volumes, DuckDB→Delta Lake |
+| `amazon` | `providers-amazon` | S3 filesystem backend |
+| `google` | `providers-google` | GCS filesystem backend |
+| `azure` | `providers-microsoft-azure` | Azure Blob / ADLS filesystem backend |
+| `sftp` | `providers-sftp` | SFTP filesystem backend |
+| `slack` | `providers-slack` | Slack failure notifications |
+| `http` | `providers-http`, `requests`, `jmespath`, `pandas` | `HttpToFilesystem`, `MultiHttpToFilesystem` |
+| `duckdb` | `airflow-provider-duckdb` | `DuckdbToDeltalake` operator |
+| `sqlite` | `providers-sqlite` | SQLite as source or destination |
+| `airflow3-full` | all of the above | Quick start / development |
 
 ---
 
@@ -367,8 +391,8 @@ Create an Airflow connection named `SLACK_WEBHOOK_NOTIFICATION_CONN` (or set `AI
 
 ```python
 from datetime import datetime, timedelta
-from airflow import DAG
-from airflow.operators.bash import BashOperator
+from airflow.sdk import DAG
+from airflow.providers.standard.operators.bash import BashOperator
 from airflow_toolkit.notifications.slack.webhook import dag_failure_slack_notification_webhook
 
 with DAG(
@@ -455,7 +479,9 @@ export AWS_DEFAULT_REGION=us-east-1
 export TEST_BUCKET=data_lake
 export S3_ENDPOINT_URL=http://localhost:9090
 
-poetry run pytest tests/ --junitxml=junit/test-results.xml
+uv run pytest tests/ --junitxml=junit/test-results.xml
 ```
 
-The CI pipeline ([`.github/workflows/lint-and-test.yml`](.github/workflows/lint-and-test.yml)) runs the full matrix automatically on every push: Airflow 2 / Python 3.10, Airflow 2 / Python 3.11, Airflow 3 / Python 3.11, Airflow 3 / Python 3.12, and Airflow 3 / Python 3.13.
+The CI pipeline ([`.github/workflows/lint-and-test.yml`](.github/workflows/lint-and-test.yml)) runs the full matrix automatically on every push: Airflow 3 / Python 3.11, Airflow 3 / Python 3.12, and Airflow 3 / Python 3.13.
+
+> **Python 3.14:** Airflow 3.2+ supports Python 3.14, but `pyarrow` (a transitive dependency of the `[databricks]` extra via `deltalake`) does not yet publish pre-built wheels for Python 3.14. Until it does, Python 3.14 is excluded from the CI matrix and the official test badge. The package can still be installed on Python 3.14 using extras that do not depend on `pyarrow` (e.g. `[airflow3,http,amazon,sftp]`).

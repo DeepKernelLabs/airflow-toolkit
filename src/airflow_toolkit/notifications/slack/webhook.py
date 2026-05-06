@@ -3,8 +3,6 @@ import typing
 
 from airflow.configuration import conf
 
-from airflow_toolkit._compact.airflow_shim import is_airflow3
-
 SLACK_WEBHOOK_CONN = "slack_webhook_notification_conn"
 DEFAULT_DAG_MSG = ':red_circle: *DAG _"{{dag.dag_id}}"_ failed*'
 DEFAULT_TASK_MSG = ':red_circle: *Task _"{{task.task_id}}"_ failed*'
@@ -19,10 +17,7 @@ class Source:
 def _get_message_blocks(
     text: str, image_url: str | None, source: str
 ) -> list[dict[str, typing.Any]]:
-    if is_airflow3:
-        base_url = conf.get("api", "base_url", fallback="http://localhost:8080")
-    else:
-        base_url = conf.get("webserver", "BASE_URL")
+    base_url = conf.get("api", "base_url", fallback="http://localhost:8080")
     dag_execution_logs_url = (
         base_url + "/dags/{{ dag.dag_id }}/grid?"
         "dag_run_id={{ run_id | urlencode }}&"

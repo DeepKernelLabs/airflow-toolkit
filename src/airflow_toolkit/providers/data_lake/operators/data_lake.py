@@ -4,7 +4,7 @@ from airflow_toolkit._compact.airflow_shim import BaseOperator, BaseHook
 from airflow_toolkit.data_lake_facade import DataLakeFacade
 
 if TYPE_CHECKING:
-    from aiflow_toolkit._compact.airflow_shim import Context
+    from airflow_toolkit._compact.airflow_shim import Context
 
 import logging
 

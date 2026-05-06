@@ -4,9 +4,14 @@ from pathlib import Path
 import uuid
 import subprocess
 
-import boto3
-from botocore.config import Config
-from botocore.exceptions import ClientError
+try:
+    import boto3
+    from botocore.config import Config
+    from botocore.exceptions import ClientError
+except ImportError:
+    boto3 = None  # type: ignore[assignment]
+    Config = None  # type: ignore[assignment]
+    ClientError = None  # type: ignore[assignment]
 import pendulum
 import pytest
 
@@ -16,7 +21,6 @@ from airflow_toolkit._compact.airflow_shim import (
     Connection,
     DAG,
     create_session,
-    is_airflow3,
     provide_session,
 )
 
@@ -64,36 +68,17 @@ def fresh_airflow_db_per_test(tmp_path, monkeypatch):
     # Make sure we don't accidentally inherit any external config
     monkeypatch.delenv("AIRFLOW__CORE__SQL_ALCHEMY_CONN", raising=False)
     # export AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
-    try:
-        import connexion  # noqa: F401
-
-        monkeypatch.setenv(
-            "AIRFLOW__CORE__AUTH_MANAGER",
-            "airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager",
-        )
-    except ImportError:
-        pass
-
     monkeypatch.setenv("AIRFLOW__CORE__STORE_SERIALIZED_DAGS", "False")
     monkeypatch.setenv("AIRFLOW__CORE__STORE_DAG_CODE", "False")
     monkeypatch.setenv("AIRFLOW__CORE__EXECUTOR", "SequentialExecutor")
-    # Initialize DB correctly for AF2 or AF3
+    # Airflow caches the DB connection at module-import time, so we must
+    # re-initialise the ORM after monkeypatching the connection URL.
     airflow_bin = Path(sys.executable).parent / "airflow"
-    if is_airflow3:
-        subprocess.run([str(airflow_bin), "db", "migrate"], check=True)
-        # Airflow 3 caches the DB connection at module-import time, so we must
-        # re-initialise the ORM after monkeypatching the connection URL.
-        import airflow.settings as _af_settings
+    subprocess.run([str(airflow_bin), "db", "migrate"], check=True)
+    import airflow.settings as _af_settings
 
-        _af_settings.configure_vars()
-        _af_settings.configure_orm(disable_connection_pool=True)
-    else:
-        subprocess.run([str(airflow_bin), "db", "reset", "-y"], check=True)
-        # Airflow 2 also caches the DB connection at import time; force reconnect.
-        import airflow.settings as _af_settings
-
-        _af_settings.configure_vars()
-        _af_settings.configure_orm(disable_connection_pool=True)
+    _af_settings.configure_vars()
+    _af_settings.configure_orm(disable_connection_pool=True)
 
     yield
     # nothing to teardown; tmp_path is cleaned by pytest
@@ -149,6 +134,8 @@ def s3_bucket(s3_resource):
 
 @pytest.fixture
 def s3_resource():
+    if boto3 is None:
+        pytest.skip("boto3 not installed — skipping S3 integration test")
     endpoint_url = os.environ.get("S3_ENDPOINT_URL")
     if not endpoint_url:
         pytest.skip("S3_ENDPOINT_URL not set — skipping S3 integration test")

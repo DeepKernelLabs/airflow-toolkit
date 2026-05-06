@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from airflow_toolkit._compact.airflow_shim import BaseHook
@@ -7,6 +9,8 @@ from airflow_toolkit.filesystems.impl.sftp_filesystem import SFTPFilesystem
 
 @pytest.fixture
 def sftp_conn():
+    if not os.environ.get("AIRFLOW_CONN_SFTP_TEST"):
+        pytest.skip("AIRFLOW_CONN_SFTP_TEST not set — skipping SFTP integration test")
     return BaseHook.get_connection("sftp_test")
 
 

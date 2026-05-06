@@ -15,18 +15,12 @@ from typing import (
     Type,
 )
 
-try:
-    from typing import TypedDict  # Python 3.11+
-except ImportError:
-    from typing_extensions import TypedDict  # Python 3.8–3.10
+from typing import TypedDict
 
 import jmespath
 import pandas as pd
 
-try:
-    from airflow.providers.http.operators.http import HttpOperator
-except ImportError:
-    from airflow.providers.http.operators.http import SimpleHttpOperator as HttpOperator
+from airflow.providers.http.operators.http import HttpOperator
 
 from airflow.utils.helpers import merge_dicts
 from requests import Response
