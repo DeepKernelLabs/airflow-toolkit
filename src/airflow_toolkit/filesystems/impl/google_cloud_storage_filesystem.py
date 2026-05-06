@@ -25,9 +25,8 @@ class GCSFilesystem(FilesystemProtocol):
 
     def create_prefix(self, prefix: str):
         bucket_name, key_prefix = _get_bucket_and_key_name(prefix)
-        if not self.hook.bucket_exists(bucket_name):
+        if not self.hook.get_bucket(bucket_name).exists():
             self.hook.create_bucket(bucket_name)
-        # Create an empty object to represent the prefix
         self.hook.upload(bucket_name, key_prefix, data="")
 
     def delete_prefix(self, prefix: str):
