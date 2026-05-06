@@ -1,12 +1,16 @@
-from typing import Optional
 from functools import cached_property
+from typing import TYPE_CHECKING
 
 from airflow.providers.common.sql.hooks.sql import DbApiHook
 from databricks import sql
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config, oauth_service_principal
 
-from airflow_toolkit._compact.airflow_shim import Connection, BaseHook
+from airflow_toolkit._compact.airflow_shim import BaseHook
+
+if TYPE_CHECKING:
+    import databricks.sql.client
+    from airflow_toolkit._compact.airflow_shim import Connection
 
 
 class AzureDatabricksSqlHook(DbApiHook):
@@ -32,21 +36,26 @@ class AzureDatabricksSqlHook(DbApiHook):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.azure_databricks_sql_conn_id = azure_databricks_sql_conn_id
-        self._sql_conn: Optional[Connection] = None
+        self._sql_conn: databricks.sql.client.Connection | None = None
 
     @cached_property
-    def azure_databricks_sql_conn(self) -> Connection:
+    def azure_databricks_sql_conn(self) -> "Connection":
         return self.get_connection(self.azure_databricks_sql_conn_id)
 
     def _get_credentials(self):
+        host = self.azure_databricks_sql_conn.host
+        if not host:
+            raise ValueError(
+                f"Connection '{self.azure_databricks_sql_conn_id}' is missing 'host'"
+            )
         config = Config(
-            host=f"https://{self.azure_databricks_sql_conn.host}",
+            host=f"https://{host}",
             client_id=self.azure_databricks_sql_conn.login,
             client_secret=self.azure_databricks_sql_conn.password,
         )
         return oauth_service_principal(config)
 
-    def get_conn(self) -> Connection:
+    def get_conn(self) -> "databricks.sql.client.Connection":
         if not self._sql_conn:
             self._sql_conn = sql.connect(
                 server_hostname=self.azure_databricks_sql_conn.host,
@@ -72,15 +81,20 @@ class AzureDatabricksVolumeHook(BaseHook):
     ) -> None:
         super().__init__(*args, **kwargs)
         self.azure_databricks_volume_conn_id = azure_databricks_volume_conn_id
-        self.w: Optional[Connection] = None
+        self.w: WorkspaceClient | None = None
 
     @cached_property
-    def azure_databricks_volume_conn(self) -> Connection:
+    def azure_databricks_volume_conn(self) -> "Connection":
         return self.get_connection(self.azure_databricks_volume_conn_id)
 
-    def _get_config(self):
+    def _get_config(self) -> Config:
+        host = self.azure_databricks_volume_conn.host
+        if not host:
+            raise ValueError(
+                f"Connection '{self.azure_databricks_volume_conn_id}' is missing 'host'"
+            )
         return Config(
-            host=f"https://{self.azure_databricks_volume_conn.host}",
+            host=f"https://{host}",
             client_id=self.azure_databricks_volume_conn.login,
             client_secret=self.azure_databricks_volume_conn.password,
         )
@@ -88,9 +102,12 @@ class AzureDatabricksVolumeHook(BaseHook):
     def _get_credentials(self):
         return oauth_service_principal(self._get_config())
 
-    def get_conn(self) -> Connection:
+    def get_conn(self) -> WorkspaceClient:
         if not self.w:
-            self.w = WorkspaceClient(
-                host=self.azure_databricks_volume_conn.host, config=self._get_config()
-            )
+            host = self.azure_databricks_volume_conn.host
+            if not host:
+                raise ValueError(
+                    f"Connection '{self.azure_databricks_volume_conn_id}' is missing 'host'"
+                )
+            self.w = WorkspaceClient(host=host, config=self._get_config())
         return self.w

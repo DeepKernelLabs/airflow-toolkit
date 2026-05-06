@@ -16,14 +16,17 @@ class AzureDatabricksVolumeFilesystem(FilesystemProtocol):
         self.hook = hook
 
     def read(self, path: str) -> bytes:
-        return self.hook.get_conn().files.download(path).contents
+        response = self.hook.get_conn().files.download(path)
+        if response.contents is None:
+            return b""
+        return response.contents.read()
 
     def write(self, data: str | bytes | BytesIO, path: str):
         if isinstance(data, str):
             data = data.encode()
         elif isinstance(data, BytesIO):
             data = data.getvalue()
-        self.hook.get_conn().files.upload(path, data)
+        self.hook.get_conn().files.upload(path, BytesIO(data))
 
     def delete_file(self, path: str):
         self.hook.get_conn().files.delete(path)
@@ -40,6 +43,8 @@ class AzureDatabricksVolumeFilesystem(FilesystemProtocol):
             return
 
         for entry in entries:
+            if entry.path is None:
+                continue
             if entry.is_directory:
                 self.delete_prefix(entry.path)
             else:
@@ -77,5 +82,5 @@ class AzureDatabricksVolumeFilesystem(FilesystemProtocol):
         return [
             entry.path
             for entry in self.hook.get_conn().files.list_directory_contents(prefix)
-            if not entry.is_directory
+            if not entry.is_directory and entry.path is not None
         ]

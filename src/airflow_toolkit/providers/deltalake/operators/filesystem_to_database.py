@@ -105,7 +105,7 @@ class FilesystemToDatabaseOperator(BaseOperator):
         ##################################################################################
         conn = BaseHook.get_connection(self.database_conn_id)
         if conn.conn_type == "postgres":
-            password_encoded = urllib.parse.quote_plus(conn.password)
+            password_encoded = urllib.parse.quote_plus(conn.password or "")
             connection_url = f"postgresql://{conn.login}:{password_encoded}@{conn.host}:{conn.port}/{conn.schema}"
         elif conn.conn_type == "sqlite":
             # get_uri() URL-encodes the host, producing an invalid sqlite:// URL

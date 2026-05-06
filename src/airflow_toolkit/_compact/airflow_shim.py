@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from airflow.sdk import DAG  # noqa: F401
 from airflow.sdk import BaseHook  # noqa: F401
 from airflow.providers.standard.hooks.filesystem import FSHook  # noqa: F401
-from airflow.models.connection import Connection  # noqa: F401
+from airflow.sdk.definitions.connection import Connection  # noqa: F401
 from airflow.sdk.bases.notifier import BaseNotifier  # noqa: F401
 from airflow.sdk import BaseOperator  # noqa: F401
 from airflow.sdk import BaseSensorOperator  # noqa: F401

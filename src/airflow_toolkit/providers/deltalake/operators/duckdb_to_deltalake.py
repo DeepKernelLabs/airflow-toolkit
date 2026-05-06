@@ -47,6 +47,10 @@ class DuckdbToDeltalakeOperator(BaseOperator):
         logger.info("Create conn for delta lake and populate storage_options")
         delta_lake_conn = BaseHook.get_connection(self.delta_lake_conn_id)
         connection_string = delta_lake_conn.extra_dejson.get("connection_string")
+        if not connection_string:
+            raise ValueError(
+                f"Connection '{self.delta_lake_conn_id}' is missing 'connection_string' in extra"
+            )
 
         logger.info("Create secret for duckdb")
         duckdb_conn.execute(

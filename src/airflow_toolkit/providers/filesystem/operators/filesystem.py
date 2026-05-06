@@ -15,7 +15,7 @@ logger = logging.getLogger(__file__)
 
 
 class Transformation(Protocol):
-    def __call__(self, data: bytes, filename: str, context: dict) -> bytes: ...
+    def __call__(self, data: bytes, filename: str, context: "Context") -> bytes: ...
 
 
 class SQLToFilesystem(BaseOperator):
