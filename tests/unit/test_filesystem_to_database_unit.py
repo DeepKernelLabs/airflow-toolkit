@@ -6,6 +6,7 @@ All tests exercise class methods directly - no dag.test(), no Airflow supervisor
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -27,8 +28,8 @@ _FULLWIDTH_A = chr(0xFF21)  # U+FF21 -> "A" after NFKC normalisation
 _LITERAL_NUL_ESCAPE = chr(92) + "u0000"
 
 
-def _make_op(**kwargs) -> FilesystemToDatabaseOperator:
-    defaults = dict(
+def _make_op(**kwargs: Any) -> FilesystemToDatabaseOperator:
+    defaults: dict[str, Any] = dict(
         task_id="test_op",
         filesystem_conn_id="fs_conn",
         database_conn_id="db_conn",
