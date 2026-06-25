@@ -1,21 +1,18 @@
 from io import BytesIO
-from typing import TYPE_CHECKING, Optional, Protocol
+from typing import TYPE_CHECKING, Optional
 
 from airflow.providers.common.sql.hooks.sql import DbApiHook
 
 from airflow_toolkit._compact.airflow_shim import BaseOperator, BaseHook
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
+from airflow_toolkit.protocols import FilesystemTransformation
 
 if TYPE_CHECKING:
     from airflow_toolkit._compact.airflow_shim import Context
 
 import logging
 
-logger = logging.getLogger(__file__)
-
-
-class Transformation(Protocol):
-    def __call__(self, data: bytes, filename: str, context: "Context") -> bytes: ...
+logger = logging.getLogger(__name__)
 
 
 class SQLToFilesystem(BaseOperator):
@@ -92,7 +89,7 @@ class FilesystemToFilesystem(BaseOperator):
         destination_fs_conn_id: str,
         source_path: str,
         destination_path: str,
-        data_transformation: Optional[Transformation] = None,
+        data_transformation: Optional[FilesystemTransformation] = None,
         create_file_on_success: str | None = None,
         *args,
         **kwargs,
@@ -118,6 +115,13 @@ class FilesystemToFilesystem(BaseOperator):
             if source_fs_hook.check_prefix(self.source_path)
             else [self.source_path]
         )
+        if len(files) > 1 and not self.destination_path.endswith("/"):
+            raise ValueError(
+                f"Multiple source files found ({len(files)}) but destination_path "
+                f"'{self.destination_path}' has no trailing '/'. "
+                f"This would overwrite the same destination with each file. "
+                f"Add a trailing '/' to destination_path."
+            )
         for file_path in files:
             logger.info(f"Trying to copy {file_path} to {self.destination_path}")
             file_name = file_path.split("/")[-1]

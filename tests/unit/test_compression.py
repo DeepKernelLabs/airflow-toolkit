@@ -8,7 +8,7 @@ from airflow_toolkit.compression_utils import (
     ungzip_data,
     CompressionOptions,
 )
-from airflow_toolkit.providers.http_to_data_lake.operators.http_to_data_lake import (
+from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import (
     list_to_jsonl,
 )
 

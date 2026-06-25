@@ -8,7 +8,7 @@ from airflow_toolkit.providers.azure.hooks.azure_databricks import (
     AzureDatabricksVolumeHook,
 )
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class AzureDatabricksVolumeFilesystem(FilesystemProtocol):
@@ -52,16 +52,9 @@ class AzureDatabricksVolumeFilesystem(FilesystemProtocol):
         conn.files.delete_directory(prefix)
 
     def check_file(self, path: str) -> bool:
-        prefix = path.rsplit("/", 1)[0]
-
         try:
-            file_list_path = [
-                entry.path == path
-                for entry in self.hook.get_conn().files.list_directory_contents(prefix)
-                if not entry.is_directory
-            ]
-            return any(file_list_path)
-
+            self.hook.get_conn().files.get_metadata(path)
+            return True
         except NotFound:
             return False
 
@@ -79,8 +72,15 @@ class AzureDatabricksVolumeFilesystem(FilesystemProtocol):
             return False
 
     def list_files(self, prefix: str) -> list[str]:
-        return [
-            entry.path
-            for entry in self.hook.get_conn().files.list_directory_contents(prefix)
-            if not entry.is_directory and entry.path is not None
-        ]
+        results: list[str] = []
+        try:
+            for entry in self.hook.get_conn().files.list_directory_contents(prefix):
+                if entry.path is None:
+                    continue
+                if entry.is_directory:
+                    results.extend(self.list_files(entry.path))
+                else:
+                    results.append(entry.path)
+        except NotFound:
+            return []
+        return results

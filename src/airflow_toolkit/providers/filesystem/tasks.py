@@ -4,7 +4,7 @@ import logging
 from airflow_toolkit._compact.airflow_shim import branch_task, BaseHook
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 @branch_task

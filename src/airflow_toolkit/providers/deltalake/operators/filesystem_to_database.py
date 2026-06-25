@@ -84,6 +84,7 @@ class FilesystemToDatabaseOperator(BaseOperator):
         metadata_columns_in_uppercase: bool = True,
         include_source_path: bool = True,
         normalize_unicode: bool = False,
+        idempotent: bool = True,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -102,6 +103,7 @@ class FilesystemToDatabaseOperator(BaseOperator):
         self.metadata_columns_in_uppercase = metadata_columns_in_uppercase
         self.include_source_path = include_source_path
         self.normalize_unicode = normalize_unicode
+        self.idempotent = idempotent
 
     def execute(self, context: Context) -> None:
         # Install a SIGTERM handler so we can tell whether Airflow/the OS is
@@ -152,6 +154,10 @@ class FilesystemToDatabaseOperator(BaseOperator):
             engine = create_engine(conn.get_uri())
         ##################################################################################
 
+        if self.idempotent:
+            self._delete_existing_run_data(engine)
+
+        first_batch = True
         for blob_path in filesystem.list_files(prefix=self.filesystem_path):
             if not blob_path.endswith(
                 (f".{self.source_format}", f".{self.source_format}.gz")
@@ -185,87 +191,89 @@ class FilesystemToDatabaseOperator(BaseOperator):
                 )
 
                 batch_num = 0
-                first_batch = True
                 total_rows_loaded = 0
                 load_start = time.monotonic()
 
-                for batch_df in self._iter_batches(tmp_path):
-                    batch_num += 1
-                    batch_rows = len(batch_df)
-                    batch_start = time.monotonic()
+                with engine.begin() as connection:
+                    for batch_df in self._iter_batches(tmp_path):
+                        batch_num += 1
+                        batch_rows = len(batch_df)
+                        batch_start = time.monotonic()
 
-                    self._check_and_fix_null_characters(batch_df)
+                        self._check_and_fix_null_characters(batch_df)
 
-                    if self.normalize_unicode:
-                        self._normalize_unicode_text(batch_df)
+                        if self.normalize_unicode:
+                            self._normalize_unicode_text(batch_df)
 
-                    for col in missing_from_file:
-                        batch_df[col] = None
+                        for col in missing_from_file:
+                            batch_df[col] = None
 
-                    for key, value in self.metadata.items():
-                        metadata_key = (
-                            key.upper()
-                            if self.metadata_columns_in_uppercase
-                            else key.lower()
-                        )
-                        batch_df[metadata_key] = value
-                        if metadata_key.startswith("_"):
-                            batch_df[metadata_key] = self._convert_to_datetime(
-                                batch_df[metadata_key]
+                        for key, value in self.metadata.items():
+                            metadata_key = (
+                                key.upper()
+                                if self.metadata_columns_in_uppercase
+                                else key.lower()
                             )
+                            batch_df[metadata_key] = value
+                            if metadata_key.startswith("_"):
+                                batch_df[metadata_key] = self._convert_to_datetime(
+                                    batch_df[metadata_key]
+                                )
 
-                    if self.include_source_path:
-                        source_path_column = (
-                            "_LOADED_FROM"
-                            if self.metadata_columns_in_uppercase
-                            else "_loaded_from"
-                        )
-                        batch_df[source_path_column] = blob_path
-                        batch_df[source_path_column] = batch_df[
-                            source_path_column
-                        ].astype("string")
+                        if self.include_source_path:
+                            source_path_column = (
+                                "_LOADED_FROM"
+                                if self.metadata_columns_in_uppercase
+                                else "_loaded_from"
+                            )
+                            batch_df[source_path_column] = blob_path
+                            batch_df[source_path_column] = batch_df[
+                                source_path_column
+                            ].astype("string")
 
-                    # First batch honours table_aggregation_type (replace/append/fail);
-                    # subsequent batches always append so they don't truncate earlier work.
-                    if_exists = self.table_aggregation_type if first_batch else "append"
-                    try:
-                        batch_df.to_sql(
-                            name=self.db_table,
-                            schema=self.db_schema,
-                            con=engine,
-                            if_exists=if_exists,
-                            index=False,
-                            method=self._postgres_copy_method
-                            if conn.conn_type == "postgres"
-                            else "multi",
+                        if_exists = (
+                            self.table_aggregation_type if first_batch else "append"
                         )
-                    except Exception:
-                        logger.exception(
-                            f"Batch {batch_num} failed at rows "
-                            f"{total_rows_loaded + 1:,}–{total_rows_loaded + batch_rows:,}"
-                        )
-                        raise
-                    first_batch = False
-                    total_rows_loaded += batch_rows
-                    batch_elapsed = time.monotonic() - batch_start
-                    total_elapsed = time.monotonic() - load_start
-                    rows_per_sec = (
-                        total_rows_loaded / total_elapsed if total_elapsed > 0 else 0
-                    )
-                    logger.info(
-                        f"Batch {batch_num}: {batch_rows:,} rows | "
-                        f"{batch_elapsed:.1f}s | "
-                        f"total {total_rows_loaded:,} rows | "
-                        f"{rows_per_sec:,.0f} rows/s"
-                    )
-                    del batch_df
-                    gc.collect()
-                    if batch_num % 10 == 0:
-                        self._log_memory(f"batch {batch_num}")
                         try:
-                            ctypes.CDLL("libc.so.6").malloc_trim(0)
+                            batch_df.to_sql(
+                                name=self.db_table,
+                                schema=self.db_schema,
+                                con=connection,
+                                if_exists=if_exists,
+                                index=False,
+                                method=self._postgres_copy_method
+                                if conn.conn_type == "postgres"
+                                else "multi",
+                            )
                         except Exception:
-                            pass
+                            logger.exception(
+                                f"Batch {batch_num} failed at rows "
+                                f"{total_rows_loaded + 1:,}–{total_rows_loaded + batch_rows:,}"
+                            )
+                            raise
+                        first_batch = False
+                        total_rows_loaded += batch_rows
+                        batch_elapsed = time.monotonic() - batch_start
+                        total_elapsed = time.monotonic() - load_start
+                        rows_per_sec = (
+                            total_rows_loaded / total_elapsed
+                            if total_elapsed > 0
+                            else 0
+                        )
+                        logger.info(
+                            f"Batch {batch_num}: {batch_rows:,} rows | "
+                            f"{batch_elapsed:.1f}s | "
+                            f"total {total_rows_loaded:,} rows | "
+                            f"{rows_per_sec:,.0f} rows/s"
+                        )
+                        del batch_df
+                        gc.collect()
+                        if batch_num % 10 == 0:
+                            self._log_memory(f"batch {batch_num}")
+                            try:
+                                ctypes.CDLL("libc.so.6").malloc_trim(0)
+                            except Exception:
+                                pass
 
                 total_elapsed = time.monotonic() - load_start
                 avg_rows_per_sec = (
@@ -430,6 +438,41 @@ class FilesystemToDatabaseOperator(BaseOperator):
                     df[column].astype(str).str.replace("\\u0000", "", regex=False)
                 )
 
+    def _delete_existing_run_data(self, engine: Engine) -> None:
+        """Delete rows matching the current run's metadata values.
+
+        Makes the operator idempotent: re-running with the same metadata
+        (e.g. same _DS date) replaces data instead of duplicating it.
+        """
+        inspector = inspect(engine)
+        schema = self.db_schema
+        if self.db_table not in inspector.get_table_names(schema=schema):
+            return
+
+        conditions = []
+        params: dict[str, Any] = {}
+        for key, value in self.metadata.items():
+            col_name = (
+                key.upper() if self.metadata_columns_in_uppercase else key.lower()
+            )
+            param_key = f"meta_{col_name}"
+            conditions.append(f'"{col_name}" = :{param_key}')
+            params[param_key] = value
+
+        if not conditions:
+            return
+
+        schema_prefix = f'"{schema}".' if schema else ""
+        where_clause = " AND ".join(conditions)
+        sql = f'DELETE FROM {schema_prefix}"{self.db_table}" WHERE {where_clause}'
+
+        with engine.begin() as conn:
+            result = conn.execute(text(sql), params)
+            logger.info(
+                f"Idempotent delete: removed {result.rowcount} existing rows "
+                f"matching {params}"
+            )
+
     def _check_and_fix_column_differences(
         self, source_columns: set[str], table_name: str, engine: Engine
     ) -> set[str]:
@@ -460,7 +503,7 @@ class FilesystemToDatabaseOperator(BaseOperator):
                     f"file — adding it as TEXT."
                 )
                 db_conn.execute(
-                    text(f'ALTER TABLE {table_name} ADD COLUMN "{column}" TEXT')
+                    text(f'ALTER TABLE "{table_name}" ADD COLUMN "{column}" TEXT')
                 )
 
         only_in_table = table_columns - source_columns

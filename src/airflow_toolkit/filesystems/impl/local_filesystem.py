@@ -47,4 +47,4 @@ class LocalFilesystem(FilesystemProtocol):
 
     def list_files(self, prefix: str) -> list[str]:
         path_to_list = Path(self.hook.get_path()) / prefix.lstrip("/")
-        return [str(file) for file in path_to_list.glob("*") if file.is_file()]
+        return [str(file) for file in path_to_list.rglob("*") if file.is_file()]

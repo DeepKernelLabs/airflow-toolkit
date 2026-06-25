@@ -55,4 +55,5 @@ class SFTPFilesystem(FilesystemProtocol):
         return self.hook.isdir(prefix)
 
     def list_files(self, prefix: str) -> list[str]:
-        return self.hook.list_directory(prefix)
+        files, _, _ = self.hook.get_tree_map(prefix)
+        return files

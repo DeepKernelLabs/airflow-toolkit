@@ -5,7 +5,7 @@ from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
 
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class BlobStorageFilesystem(FilesystemProtocol):
@@ -15,7 +15,7 @@ class BlobStorageFilesystem(FilesystemProtocol):
     def read(self, path: str) -> bytes:
         container_name, blob_name = _get_container_and_blob_name(path)
         stream = self.hook.download(container_name=container_name, blob_name=blob_name)
-        return stream.readall().encode()
+        return stream.readall()
 
     def write(self, data: str | bytes | BytesIO, path: str):
         container_name, blob_name = _get_container_and_blob_name(path)

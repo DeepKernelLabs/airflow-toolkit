@@ -17,4 +17,10 @@ class FilesystemProtocol(Protocol):
 
     def check_prefix(self, prefix: str) -> bool: ...
 
-    def list_files(self, prefix: str) -> list[str]: ...
+    def list_files(self, prefix: str) -> list[str]:
+        """Return paths of all files under *prefix*, recursively.
+
+        Directories are never included. Returned paths must be usable
+        with ``read()``, ``delete_file()``, etc.
+        """
+        ...

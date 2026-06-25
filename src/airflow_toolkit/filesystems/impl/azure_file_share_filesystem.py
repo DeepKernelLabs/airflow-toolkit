@@ -8,7 +8,7 @@ from airflow_toolkit.providers.azure.hooks.azure_file_share import (
     AzureFileShareServicePrincipalHook,
 )
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class AzureFileShareFilesystem(FilesystemProtocol):
@@ -47,8 +47,11 @@ class AzureFileShareFilesystem(FilesystemProtocol):
         return self.hook.get_conn().get_directory_client(prefix).exists()
 
     def list_files(self, prefix: str) -> list[str]:
-        return [
-            f"{prefix}/{item.name}"
-            for item in self.hook.get_conn().list_directories_and_files(prefix)
-            if not item.is_directory
-        ]
+        results: list[str] = []
+        for item in self.hook.get_conn().list_directories_and_files(prefix):
+            full_path = f"{prefix}/{item.name}"
+            if isinstance(item, DirectoryProperties):
+                results.extend(self.list_files(full_path))
+            else:
+                results.append(full_path)
+        return results

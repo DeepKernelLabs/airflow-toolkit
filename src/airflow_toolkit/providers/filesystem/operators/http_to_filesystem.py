@@ -11,7 +11,6 @@ from typing import (
     Generator,
     Literal,
     Optional,
-    Protocol,
     Type,
 )
 
@@ -29,17 +28,12 @@ from airflow_toolkit._compact.airflow_shim import BaseOperator, Context, BaseHoo
 from airflow_toolkit.compression_utils import CompressionOptions, compress
 from airflow_toolkit.exceptions import ApiResponseTypeError
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
+from airflow_toolkit.protocols import HttpTransformation
 
 if TYPE_CHECKING:
     from requests.auth import AuthBase
 
 SaveFormat = Literal["jsonl"]
-
-
-class Transformation(Protocol):
-    def __call__(
-        self, data: Any, *args: Any, **kwargs: Any
-    ) -> BytesIO | bytes | str: ...
 
 
 class HttpBatchOperator(HttpOperator):
@@ -144,7 +138,7 @@ class HttpToFilesystem(BaseOperator):
         pagination_function: Callable | None = None,
         use_new_data_parameters_on_pagination: bool = False,
         create_file_on_success: str | None = None,
-        data_transformation: Optional[Transformation] = None,
+        data_transformation: Optional[HttpTransformation] = None,
         data_transformation_kwargs: dict[str, Any] | None = None,
         file_number_start: int = 1,
         strict_response_schema: bool = True,
@@ -514,9 +508,9 @@ class MultiHttpToFilesystem(HttpToFilesystem):
 def list_to_jsonl(data: list[dict], compression: "CompressionOptions") -> BytesIO:
     out = StringIO()
     df = pd.DataFrame(data)
-    df.to_json(out, orient="records", lines=True, compression=compression)
-    out.seek(0)
-    return BytesIO(out.getvalue().encode())
+    df.to_json(out, orient="records", lines=True)
+    raw = out.getvalue().encode()
+    return BytesIO(compress(compression, raw))
 
 
 def json_to_binary(data: dict, compression: "CompressionOptions") -> BytesIO:

@@ -96,16 +96,41 @@ The following categories are explicitly **not supported**, because they bypass t
 
 ---
 
-## 6. Notifications
+## 6. Notifications overhaul *(target: v2.2.0)*
 
-*Following the pattern of `dag_failure_slack_notification_webhook`.*
+*The current Slack notification uses a plain code-block format with limited context. The goal is a notification system that is rich, multi-channel, and easy to extend.*
+
+### Architecture
+
+The core idea is to separate **what information to show** from **how to format it**:
+
+1. **Notification context builder** — a shared function that extracts runtime information from the Airflow callback/task context: `dag_id`, `run_id`, `ds`, `schedule`, `data_interval_start/end`, `duration`, `failed_tasks`, `environment` (inferred from webserver base URL), and `dag_url`. Every channel formatter consumes this same dict.
+
+2. **Channel formatters** — each channel (Slack, email, Teams, etc.) receives the context dict and produces the appropriate payload. No channel-specific logic in the context builder.
+
+3. **Two usage patterns:**
+   - `on_failure_callback=dag_failure_notification(channels=["slack", "email"])` — classic Airflow callback, plug-and-play.
+   - `@task(trigger_rule='one_failed')` pattern — for DAGs that prefer an explicit notification task in the graph (allows dependencies, XCom, etc.).
+
+### Slack improvements
+
+Replace the current plain code-block message with a rich Block Kit layout: header with environment badge, structured fields (run ID, logical date, schedule, interval, duration), context footer with base URL, and a "View in Airflow" action button.
+
+### Reference implementation
+
+`ksa-insights-cloud-composer` (`ksa_cloud_composer/dags/tasks/notifications.py`) already implements this pattern for Slack + email with rich formatting. Use it as the design reference for the generic version in airflow-toolkit.
+
+### Items
 
 | Item | Description | Effort |
 |------|-------------|--------|
-| Microsoft Teams | Native Teams webhook, widely used in enterprise organisations. | S |
-| Discord | Popular in smaller technical teams. | S |
-| PagerDuty | On-call alerting for critical pipeline failures. | S |
-| Generic webhook | Send a configurable JSON payload to any HTTP endpoint. | S |
+| Notification context builder | Shared function to extract DAG/run metadata from Airflow context | S |
+| Slack rich notifications | Block Kit layout with header, fields, actions (replaces current plain format) | S |
+| Email HTML notifications | Professional HTML template with styled table, CTA button, environment badge | S |
+| Microsoft Teams | Adaptive Card via Teams webhook | S |
+| Discord | Discord webhook with embed formatting | S |
+| PagerDuty | On-call alerting for critical pipeline failures | S |
+| Generic webhook | Send a configurable JSON payload to any HTTP endpoint | S |
 
 ---
 
@@ -114,7 +139,7 @@ The following categories are explicitly **not supported**, because they bypass t
 | Item | Description | Effort |
 |------|-------------|--------|
 | `MockFilesystem` for unit tests | An in-memory `FilesystemProtocol` implementation — no Docker required for unit tests. | S |
-| Remove deprecated code | `DataLakeFacade`, `HttpToDataLake`, `DataLakeDeleteOperator`, `DataLakeCheckOperator` — two API generations currently coexist. | S |
+| ~~Remove deprecated code~~ | ~~`DataLakeFacade`, `HttpToDataLake`, `DataLakeDeleteOperator`, `DataLakeCheckOperator` — two API generations currently coexist.~~ **Done in v2.1.0** | S |
 | Stricter typing | Use `TypedDict` for `metadata`, `RequestSpec`, and other dict-typed parameters. | S |
 | Filesystem scaffolding script | CLI helper to generate the boilerplate for a new filesystem implementation. | S |
 
@@ -134,9 +159,8 @@ The following categories are explicitly **not supported**, because they bypass t
 
 | Priority | Items |
 |----------|-------|
-| **Critical** — known bugs | `BlobStorageFilesystem.read()`, DuckDB connection string injection, `FilesystemToDatabase` ALTER TABLE quoting |
-| **High** — low effort, high value | `FilesystemToDeltalake`, `FilesystemToIceberg`, new sensors, Teams/webhook notifications, remove deprecated code, `list_files()` contract |
-| **Medium** — moderate effort, broad adoption | Incremental `FilesystemToFilesystem`, `DeltalakeToFilesystem`, `IcebergToFilesystem`, OAuth refresh, Excel/Avro support, `MockFilesystem`, idempotency |
+| **High** — low effort, high value | `FilesystemToDeltalake`, `FilesystemToIceberg`, new sensors, Teams/webhook notifications |
+| **Medium** — moderate effort, broad adoption | Incremental `FilesystemToFilesystem`, `DeltalakeToFilesystem`, `IcebergToFilesystem`, OAuth refresh, Excel/Avro support, `MockFilesystem` |
 | **Low** — higher effort or niche use case | GraphQL, FTP, data quality integrations, Snowflake/BigQuery native, `DatabricksSQLToFilesystem` |
 
 ---
@@ -145,89 +169,69 @@ The following categories are explicitly **not supported**, because they bypass t
 
 *Known issues found during code review. These are Jira-ready tasks — each maps to one ticket.*
 
-### BUG-01 · `BlobStorageFilesystem.read()` — invalid `.encode()` on bytes
+### ~~BUG-01 · `BlobStorageFilesystem.read()` — invalid `.encode()` on bytes~~ ✓
 
-**File:** `blob_storage_filesystem.py`
-**Problem:** `stream.readall()` returns `bytes`, but `.encode()` is called on top of it. Crashes on any Azure Blob read operation.
-**Done when:** `.encode()` is removed; existing Azure Blob tests pass; a unit test covers the `read()` return type.
-**Effort:** S
+~~**File:** `blob_storage_filesystem.py`~~
+**Resolved in v2.1.0:** Removed invalid `.encode()` call on `bytes` returned by `stream.readall()`.
 
 ---
 
-### BUG-02 · `DuckdbToDeltalake` — connection string interpolated directly into SQL
+### ~~BUG-02 · `DuckdbToDeltalake` — connection string interpolated directly into SQL~~ ✓
 
-**File:** `duckdb_to_deltalake.py`
-**Problem:** Azure connection strings are f-string interpolated into a DuckDB `CREATE SECRET` statement. A single quote in the key (common in Azure) breaks the SQL. Credentials also leak into DuckDB query logs.
-**Done when:** Connection string is properly escaped or passed via DuckDB parameters; a test covers a connection string containing special characters.
-**Effort:** S
+~~**File:** `duckdb_to_deltalake.py`~~
+**Resolved in v2.1.0:** Connection string single quotes are now escaped before interpolation into `CREATE SECRET`.
 
 ---
 
-### BUG-03 · `FilesystemToFilesystem` — silent overwrite when destination has no trailing slash
+### ~~BUG-03 · `FilesystemToFilesystem` — silent overwrite when destination has no trailing slash~~ ✓
 
-**File:** `filesystem.py`
-**Problem:** If `destination_path` has no trailing `/`, it is treated as a literal filename. Copying N source files results in only the last file surviving — no error, no warning.
-**Done when:** Operator raises a clear error (or warning) when multiple source files are detected and destination has no trailing slash; behaviour is documented in docstring.
-**Effort:** S
+~~**File:** `filesystem.py`~~
+**Resolved in v2.1.0:** Operator raises `ValueError` when multiple source files are detected and `destination_path` has no trailing `/`.
 
 ---
 
-### BUG-04 · `FilesystemToDatabase` — unquoted table name in `ALTER TABLE`
+### ~~BUG-04 · `FilesystemToDatabase` — unquoted table name in `ALTER TABLE`~~ ✓
 
-**File:** `filesystem_to_database.py`
-**Problem:** Table name is f-string interpolated into `ALTER TABLE {table_name} ADD COLUMN ...` without SQLAlchemy quoting.
-**Done when:** Table and column names are quoted using SQLAlchemy's `quoted_name` or equivalent; a test covers a table name with special characters.
-**Effort:** S
+~~**File:** `filesystem_to_database.py`~~
+**Resolved in v2.1.0:** Table name is now quoted with `"` in `ALTER TABLE` statements.
 
 ---
 
-### PROTOCOL-01 · `list_files()` — inconsistent recursive semantics across filesystems
+### ~~PROTOCOL-01 · `list_files()` — inconsistent recursive semantics across filesystems~~ ✓
 
-**Problem:** S3 and GCS return all objects under the prefix (recursive). Local, SFTP, and Azure FileShare return only immediate children. Code written for one backend silently fails on another.
-**Done when:** `FilesystemProtocol` documents the expected contract (recursive or not); all implementations are consistent, OR a `recursive: bool` parameter is added and all implementations honour it; tests cover both behaviours.
-**Effort:** M
+**Resolved in v2.1.0:** All implementations now list files recursively. Contract documented in `FilesystemProtocol`. Local uses `rglob("*")`, SFTP uses `get_tree_map()`, Azure FileShare and Databricks Volumes recurse into subdirectories.
 
 ---
 
-### PROTOCOL-02 · Two incompatible `Transformation` Protocol definitions
+### ~~PROTOCOL-02 · Two incompatible `Transformation` Protocol definitions~~ ✓
 
-**Files:** `filesystem.py`, `http_to_filesystem.py`
-**Problem:** Both files define a `Transformation` Protocol with different signatures. A callable valid for one operator is not valid for the other.
-**Done when:** A single canonical `Transformation` Protocol is defined (e.g. in `protocols.py`); both operators import and use it; existing tests pass.
-**Effort:** S
+~~**Files:** `filesystem.py`, `http_to_filesystem.py`~~
+**Resolved in v2.1.0:** Two clearly named Protocols (`FilesystemTransformation`, `HttpTransformation`) defined in `protocols.py`. Both operators import from the shared module.
 
 ---
 
-### RELIABILITY-01 · `FilesystemToDatabase` — no transaction on bulk insert
+### ~~RELIABILITY-01 · `FilesystemToDatabase` — no transaction on bulk insert~~ ✓
 
-**Problem:** Rows are inserted without a wrapping transaction. A failure mid-load leaves partial data in the table with no rollback.
-**Done when:** The insert operation is wrapped in a database transaction; on failure the transaction is rolled back and the error is re-raised; a test simulates a mid-load failure and verifies no rows are committed.
-**Effort:** M
+**Resolved in v2.1.0:** Each file's load is wrapped in `engine.begin()`. On failure, all batches for that file are rolled back. Also fixed `first_batch` being reset per file (which caused `table_aggregation_type="replace"` to drop data from previous files).
 
 ---
 
-### RELIABILITY-02 · No idempotency — Airflow retries duplicate data
+### ~~RELIABILITY-02 · No idempotency — Airflow retries duplicate data~~ ✓
 
-**Problem:** None of the load operators check whether the target already contains data for the current run. An Airflow retry (e.g. after a transient network error) re-inserts everything, duplicating rows.
-**Done when:** At least `FilesystemToDatabase` and `SQLToFilesystem` support an idempotency strategy (e.g. `write_disposition: replace | append | skip_if_exists`); the chosen mode is documented and tested.
-**Effort:** M
+**Resolved in v2.1.0:** `FilesystemToDatabaseOperator` now supports `idempotent=True` (default). Before loading, rows matching the current run's metadata (e.g. `_DS`) are deleted, preventing duplicates on retry.
 
 ---
 
-### RELIABILITY-03 · `AzureDatabricksVolumeFilesystem.check_file()` — full directory listing to check one file
+### ~~RELIABILITY-03 · `AzureDatabricksVolumeFilesystem.check_file()` — full directory listing to check one file~~ ✓
 
-**File:** `azure_databricks_volume_filesystem.py`
-**Problem:** To check whether a single file exists, the implementation lists the entire directory. Slow on large directories; also contains a boolean-list construction that could be simplified.
-**Done when:** File existence is checked with a direct `get` or `stat` call where the SDK supports it; fallback to listing uses early exit (`any()` with a generator); a test covers a directory with many entries.
-**Effort:** S
+~~**File:** `azure_databricks_volume_filesystem.py`~~
+**Resolved in v2.1.0:** Replaced full directory listing with `files.get_metadata(path)` — a single O(1) HEAD request.
 
 ---
 
-### DX-01 · Logger names use `__file__` instead of `__name__`
+### ~~DX-01 · Logger names use `__file__` instead of `__name__`~~ ✓
 
-**Problem:** Several modules call `logging.getLogger(__file__)`, producing absolute filesystem paths as logger names in Airflow logs. Makes filtering and log routing difficult.
-**Done when:** All `getLogger(__file__)` calls are replaced with `getLogger(__name__)`; no functional change to log messages.
-**Effort:** S
+**Resolved in v2.1.0:** All `getLogger(__file__)` calls replaced with `getLogger(__name__)` across 5 modules.
 
 ---
 
