@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import typing
 from unittest.mock import patch
-
 
 from airflow_toolkit.notifications.channels.email import (
     build_email_html,
@@ -10,8 +10,8 @@ from airflow_toolkit.notifications.channels.email import (
 from airflow_toolkit.notifications.context import NotificationContext
 
 
-def _ctx(**kwargs) -> NotificationContext:
-    defaults: NotificationContext = {
+def _ctx(**kwargs: typing.Any) -> NotificationContext:
+    base: dict[str, typing.Any] = {
         "dag_id": "my_dag",
         "run_id": "scheduled__2024-01-15",
         "ds": "2024-01-15",
@@ -24,8 +24,8 @@ def _ctx(**kwargs) -> NotificationContext:
         "execution_at": "2024-01-15 06:00:05 UTC",
         "duration": "3m 45s",
     }
-    defaults.update(kwargs)
-    return defaults
+    base.update(kwargs)
+    return typing.cast(NotificationContext, base)
 
 
 class TestBuildEmailHtml:
