@@ -1,6 +1,6 @@
 [project]
 name = "airflow-toolkit"
-version = "2.1.0"
+version = "2.2.0"
 description = "A toolkit of operators, hooks and utilities for Apache Airflow 3"
 authors = [{ name = "Biel Llobera", email = "biel_llobera@dkl.digital" }]
 requires-python = ">=3.11,<3.15"
@@ -37,9 +37,6 @@ azure = [
 sftp = [
     "apache-airflow-providers-sftp>=5.3",
 ]
-slack = [
-    "apache-airflow-providers-slack>=9.3",
-]
 http = [
     "apache-airflow-providers-http>=5.6.4",
     "requests>=2.31.0",
@@ -64,7 +61,6 @@ airflow3-full = [
     "apache-airflow-providers-google>=18",
     "apache-airflow-providers-microsoft-azure>=8",
     "apache-airflow-providers-sftp>=5.3",
-    "apache-airflow-providers-slack>=9.3",
     "apache-airflow-providers-http>=5.6.4",
     "requests>=2.31.0",
     "jmespath>=1.0.1,<2",

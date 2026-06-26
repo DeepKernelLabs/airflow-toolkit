@@ -231,7 +231,7 @@ wheels = [
 
 [[package]]
 name = "airflow-toolkit"
-version = "2.1.0"
+version = "2.2.0"
 source = { editable = "." }
 
 [package.optional-dependencies]
@@ -249,7 +249,6 @@ airflow3-full = [
     { name = "apache-airflow-providers-http" },
     { name = "apache-airflow-providers-microsoft-azure" },
     { name = "apache-airflow-providers-sftp" },
-    { name = "apache-airflow-providers-slack" },
     { name = "apache-airflow-providers-sqlite" },
     { name = "databricks-sdk" },
     { name = "databricks-sql-connector" },
@@ -288,9 +287,6 @@ http = [
 ]
 sftp = [
     { name = "apache-airflow-providers-sftp" },
-]
-slack = [
-    { name = "apache-airflow-providers-slack" },
 ]
 sqlite = [
     { name = "apache-airflow-providers-sqlite" },
@@ -334,8 +330,6 @@ requires-dist = [
     { name = "apache-airflow-providers-microsoft-azure", marker = "extra == 'azure'", specifier = ">=8" },
     { name = "apache-airflow-providers-sftp", marker = "extra == 'airflow3-full'", specifier = ">=5.3" },
     { name = "apache-airflow-providers-sftp", marker = "extra == 'sftp'", specifier = ">=5.3" },
-    { name = "apache-airflow-providers-slack", marker = "extra == 'airflow3-full'", specifier = ">=9.3" },
-    { name = "apache-airflow-providers-slack", marker = "extra == 'slack'", specifier = ">=9.3" },
     { name = "apache-airflow-providers-sqlite", marker = "extra == 'airflow3-full'" },
     { name = "apache-airflow-providers-sqlite", marker = "extra == 'sqlite'" },
     { name = "databricks-sdk", marker = "extra == 'airflow3-full'", specifier = ">=0.21.0,<1" },
@@ -354,7 +348,7 @@ requires-dist = [
     { name = "requests", marker = "extra == 'airflow3-full'", specifier = ">=2.31.0" },
     { name = "requests", marker = "extra == 'http'", specifier = ">=2.31.0" },
 ]
-provides-extras = ["airflow3", "databricks", "amazon", "google", "azure", "sftp", "slack", "http", "duckdb", "sqlite", "airflow3-full"]
+provides-extras = ["airflow3", "databricks", "amazon", "google", "azure", "sftp", "http", "duckdb", "sqlite", "airflow3-full"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -757,21 +751,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ee/63/0bfb3b0a8a1de7b483d692cf8c8651110472a4fadf0aaac942e0c5ad7ad0/apache_airflow_providers_sftp-5.4.0.tar.gz", hash = "sha256:650993d2fdf863ca93c3784d40c417d6b07de9df556bb6ecb318b27dda325d21", size = 81907, upload-time = "2025-09-09T03:50:12.409Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8c/f8/c709ed6d3c4a9e33e9dad2de172b8aa144fca44190ab9f2b798f47ad0b10/apache_airflow_providers_sftp-5.4.0-py3-none-any.whl", hash = "sha256:ad0464a2a0ddc718944ea78f3ba472a37775d70da7c025febbae5677376982ba", size = 33345, upload-time = "2025-09-09T03:49:34.001Z" },
-]
-
-[[package]]
-name = "apache-airflow-providers-slack"
-version = "9.3.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "apache-airflow" },
-    { name = "apache-airflow-providers-common-compat" },
-    { name = "apache-airflow-providers-common-sql" },
-    { name = "slack-sdk" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/04/8a/9e8b3a7939202a8b978955838c6f434a57ea31f4772202c04639ac54d401/apache_airflow_providers_slack-9.3.0.tar.gz", hash = "sha256:f40558b1403b0c72b85c026dc04432e654ffdeee9fe703c1a15f2f31b34f626e", size = 61530, upload-time = "2025-09-22T09:23:20.982Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/0c/76f8dfb0c980452245c2a03796498ced11e5f35d282309f1b430933c76b4/apache_airflow_providers_slack-9.3.0-py3-none-any.whl", hash = "sha256:2e0eb3c13f94cba0da53da58e21bcbaa0a0eec63f575e00ad231e2705a4c51fd", size = 41773, upload-time = "2025-09-22T09:22:35.803Z" },
 ]
 
 [[package]]
@@ -6810,15 +6789,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
-]
-
-[[package]]
-name = "slack-sdk"
-version = "3.36.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/73/1e/bbf7fdd00306f097ddb839c23628b7e271128cc8f584b9cae8f704b3924e/slack_sdk-3.36.0.tar.gz", hash = "sha256:8586022bdbdf9f8f8d32f394540436c53b1e7c8da9d21e1eab4560ba70cfcffa", size = 233382, upload-time = "2025-07-09T20:58:22.838Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/9a/380d20856d9ea39fbc4d3bb66f076b0d72035ebe873eb05fc88ebee4125f/slack_sdk-3.36.0-py2.py3-none-any.whl", hash = "sha256:6c96887d7175fc1b0b2777b73bb65f39b5b8bee9bd8acfec071d64014f9e2d10", size = 293949, upload-time = "2025-07-09T20:58:21.233Z" },
 ]
 
 [[package]]

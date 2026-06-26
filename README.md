@@ -381,74 +381,99 @@ Because `AzureDatabricksSqlHook` implements `DbApiHook`, it can be used as `sour
 
 ## Notifications
 
-### Slack (incoming webhook)
+Send rich failure notifications to Slack, email, Microsoft Teams, and Discord from a single call. The notification system is built around three ideas:
 
-Send DAG or task failure alerts to a Slack channel using `dag_failure_slack_notification_webhook`. Requires a Slack App with Incoming Webhooks enabled.
+1. **Context builder** — extracts DAG run metadata (run ID, logical date, schedule, interval, duration, environment) from the Airflow callback context once, and makes it available to all channels.
+2. **Channel formatters** — each channel (Slack Block Kit, HTML email, Teams Adaptive Card, Discord embed) formats the same context into the right payload for that platform.
+3. **Two usage patterns** — as an `on_failure_callback` (invisible to the graph) or as an explicit `@task` node in the DAG graph.
 
-Create an Airflow connection named `SLACK_WEBHOOK_NOTIFICATION_CONN` (or set `AIRFLOW_CONN_SLACK_WEBHOOK_NOTIFICATION_CONN`).
+### Pattern A — `on_failure_callback`
 
-#### DAG-level notification
+The callback fires automatically when any task in the DAG fails. Nothing appears in the task graph.
 
 ```python
-from datetime import datetime, timedelta
-from airflow.sdk import DAG
-from airflow.providers.standard.operators.bash import BashOperator
-from airflow_toolkit.notifications.slack.webhook import dag_failure_slack_notification_webhook
+from airflow_toolkit.notifications import dag_failure_notification
 
 with DAG(
     'my_pipeline',
-    schedule=timedelta(days=1),
-    start_date=datetime(2024, 1, 1),
-    catchup=False,
-    on_failure_callback=dag_failure_slack_notification_webhook(),
-) as dag:
-
-    t = BashOperator(task_id='run', bash_command='python my_script.py')
+    schedule='0 6 * * *',
+    on_failure_callback=dag_failure_notification(
+        channels=['slack', 'email'],
+        environment='PROD',
+        slack_webhook_url='https://hooks.slack.com/services/...',
+        email_to=['data-team@example.com'],
+    ),
+):
+    ...
 ```
 
-#### Task-level notification
+### Pattern B — explicit task in the graph
+
+`get_failure_notification_task` returns an Airflow task with `trigger_rule='one_failed'`. It fires when any upstream task fails and is **skipped** when all tasks succeed. The notification step is visible in the Airflow UI, has its own logs, and appears in the task history.
 
 ```python
-BashOperator(
-    task_id='run',
-    bash_command='python my_script.py',
-    on_failure_callback=dag_failure_slack_notification_webhook(source='TASK'),
-)
+from airflow_toolkit.notifications import get_failure_notification_task
+
+with DAG('my_pipeline', schedule='0 6 * * *'):
+    extract = ...
+    load    = ...
+
+    notify = get_failure_notification_task(
+        channels=['slack', 'email'],
+        environment='PROD',
+        slack_webhook_url='https://hooks.slack.com/services/...',
+        email_to=['data-team@example.com'],
+    )
+
+    [extract, load] >> notify
 ```
 
-#### Custom message
+### Supported channels
 
-```python
-on_failure_callback=dag_failure_slack_notification_webhook(
-    text='Pipeline {{ dag.dag_id }} failed on {{ ds }}',
-    include_blocks=False,
-)
-```
-
-#### Custom Slack blocks
-
-```python
-on_failure_callback=dag_failure_slack_notification_webhook(
-    blocks={
-        'type': 'section',
-        'text': {'type': 'mrkdwn', 'text': '*Pipeline failed* — check the logs.'},
-    }
-)
-```
-
-Default notification format:
-
-![image](https://github.com/DeepKernelLabs/airflow-toolkit/assets/152852247/52a5bf95-21bc-4c3b-8093-79953c0c5d61)
-
-**Parameters:**
-
-| Parameter | Type | Description |
+| Channel | Parameter | Requires |
 |---|---|---|
-| `text` | `str` (optional) | Plain-text message. Overrides blocks if provided. |
-| `blocks` | `dict` (optional) | Custom Slack Block Kit payload. |
-| `include_blocks` | `bool` (optional) | Whether to include the default formatted block. |
-| `source` | `'DAG'` \| `'TASK'` (optional) | Source of the failure. Default: `'DAG'`. |
-| `image_url` | `str` (optional) | Accessory image URL. Can also be set via `AIRFLOW_TOOLKIT__SLACK_NOTIFICATION_IMG_URL`. |
+| `slack` | `slack_webhook_url` | — |
+| `email` | `email_to: list[str]`, `email_from` (optional) | Airflow SMTP configured |
+| `teams` | `teams_webhook_url` | — |
+| `discord` | `discord_webhook_url` | — |
+
+Any combination of channels can be used in a single call. Channels are delivered sequentially in the order listed.
+
+### All parameters
+
+```python
+dag_failure_notification(
+    channels=['slack', 'email', 'teams', 'discord'],
+
+    # Environment label shown in every notification (DEV / STG / PROD)
+    environment='PROD',
+
+    # Slack
+    slack_webhook_url='https://hooks.slack.com/services/...',
+
+    # Email
+    email_to=['ops@example.com'],
+    email_from=None,                 # uses Airflow SMTP default if omitted
+
+    # Teams
+    teams_webhook_url='https://outlook.office.com/webhook/...',
+
+    # Discord
+    discord_webhook_url='https://discord.com/api/webhooks/...',
+)
+```
+
+`get_failure_notification_task` accepts the same parameters.
+
+### Environment colours
+
+Each environment maps to a distinct colour across all channels so alerts are recognisable at a glance:
+
+| Environment | Slack | Teams | Discord |
+|---|---|---|---|
+| `PROD` | 🔴 red | Attention (red) | #ED4245 |
+| `STG` | 🟡 yellow | Warning (orange) | #FF8C00 |
+| `DEV` | 🟢 green | Good (green) | #57F287 |
 
 ---
 

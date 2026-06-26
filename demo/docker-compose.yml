@@ -43,10 +43,18 @@ x-airflow-common: &airflow-common
     AIRFLOW__WEBSERVER__BASE_URL: "http://localhost:8080"
     # Makes airflow-toolkit importable from the mounted local source
     PYTHONPATH: /opt/airflow/airflow_toolkit_src
+    # SMTP — MailHog catches all outgoing email (web UI → localhost:8025)
+    AIRFLOW__SMTP__SMTP_HOST: mailhog
+    AIRFLOW__SMTP__SMTP_PORT: "1025"
+    AIRFLOW__SMTP__SMTP_STARTTLS: "false"
+    AIRFLOW__SMTP__SMTP_SSL: "false"
+    AIRFLOW__SMTP__SMTP_MAIL_FROM: "airflow@demo.local"
     # Pre-configured connections (no manual setup needed in the UI)
     AIRFLOW_CONN_DEMO_HTTP: '{"conn_type": "http", "host": "jsonplaceholder.typicode.com", "schema": "https"}'
     AIRFLOW_CONN_DEMO_MINIO: '{"conn_type": "aws", "login": "minio", "password": "miniominio", "extra": {"endpoint_url": "http://minio:9000", "region_name": "us-east-1"}}'
     AIRFLOW_CONN_DEMO_POSTGRES: '{"conn_type": "postgres", "host": "postgres", "login": "dw_user", "password": "dw_password", "schema": "demo_dw", "port": 5432}'
+    # Slack connection — points to local webhook-logger for demo
+    AIRFLOW_CONN_SLACK_WEBHOOK_NOTIFICATION_CONN: '{"conn_type": "http", "host": "http://webhook-logger:8099/slack"}'
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
@@ -288,6 +296,31 @@ services:
       postgres:
         condition: service_healthy
     restart: "no"
+
+  # ----------------------------------------------------------
+  #  MailHog — SMTP catcher for email notifications
+  #  Web UI: http://localhost:8025  (all outgoing emails land here)
+  # ----------------------------------------------------------
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    restart: unless-stopped
+
+  # ----------------------------------------------------------
+  #  Webhook logger — catches Slack / Teams / Discord payloads
+  #  Run: docker compose logs -f webhook-logger
+  #  Endpoints: POST /slack  /teams  /discord
+  # ----------------------------------------------------------
+  webhook-logger:
+    image: python:3.12-slim
+    command: python /scripts/webhook_logger.py
+    volumes:
+      - ./scripts:/scripts
+    ports:
+      - "8099:8099"
+    restart: unless-stopped
 
 volumes:
   postgres-data:
