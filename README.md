@@ -83,7 +83,6 @@ pip install "airflow-toolkit[airflow3-full]"
 | `google` | `providers-google` | GCS filesystem backend |
 | `azure` | `providers-microsoft-azure` | Azure Blob / ADLS filesystem backend |
 | `sftp` | `providers-sftp` | SFTP filesystem backend |
-| `slack` | `providers-slack` | Slack failure notifications |
 | `http` | `providers-http`, `requests`, `jmespath`, `pandas` | `HttpToFilesystem`, `MultiHttpToFilesystem` |
 | `duckdb` | `airflow-provider-duckdb` | `DuckdbToDeltalake` operator |
 | `sqlite` | `providers-sqlite` | SQLite as source or destination |
