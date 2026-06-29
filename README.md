@@ -86,6 +86,8 @@ pip install "airflow-toolkit[airflow3-full]"
 | `http` | `providers-http`, `requests`, `jmespath`, `pandas` | `HttpToFilesystem`, `MultiHttpToFilesystem` |
 | `duckdb` | `airflow-provider-duckdb` | `DuckdbToDeltalake` operator |
 | `sqlite` | `providers-sqlite` | SQLite as source or destination |
+| `excel` | `openpyxl` | Excel (`.xlsx` / `.xls`) support in `FilesystemToDatabase` |
+| `avro` | `fastavro` | Avro support in `FilesystemToDatabase` |
 | `airflow3-full` | all of the above | Quick start / development |
 
 ---
@@ -259,7 +261,9 @@ FilesystemToFilesystem(
 
 ### FilesystemToDatabase
 
-Reads files (CSV, JSON, or Parquet) from any filesystem and loads them into any SQLAlchemy-compatible database. Handles schema drift automatically: columns present in the file but missing from the table are added; columns present in the table but missing from the file are filled with `NULL`.
+Reads files from any filesystem and loads them into any SQLAlchemy-compatible database. Handles schema drift automatically: columns present in the file but missing from the table are added; columns present in the table but missing from the file are filled with `NULL`.
+
+**Supported formats:** `csv`, `json`, `parquet`, `excel`, `avro`, `fixed_width`.
 
 ```python
 from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import FilesystemToDatabaseOperator
@@ -271,7 +275,7 @@ FilesystemToDatabaseOperator(
     filesystem_path='raw/orders/{{ ds }}/',
     db_schema='public',
     db_table='orders',
-    source_format='csv',
+    source_format='csv',                   # 'csv' | 'json' | 'parquet' | 'excel' | 'avro' | 'fixed_width'
     table_aggregation_type='append',       # 'append' | 'replace' | 'fail'
     metadata={
         '_ds':          '{{ ds }}',
@@ -280,6 +284,52 @@ FilesystemToDatabaseOperator(
     include_source_path=True,              # adds _LOADED_FROM column for traceability
 )
 ```
+
+**Excel** (requires the `[excel]` extra):
+
+```python
+FilesystemToDatabaseOperator(
+    task_id='load_excel_report',
+    filesystem_conn_id='my_data_lake',
+    database_conn_id='my_postgres',
+    filesystem_path='raw/reports/{{ ds }}/',
+    db_table='monthly_report',
+    source_format='excel',
+    source_format_options={'sheet_name': 'Data'},
+)
+```
+
+**Avro** (requires the `[avro]` extra):
+
+```python
+FilesystemToDatabaseOperator(
+    task_id='load_avro_events',
+    filesystem_conn_id='my_data_lake',
+    database_conn_id='my_postgres',
+    filesystem_path='raw/events/{{ ds }}/',
+    db_table='events',
+    source_format='avro',
+)
+```
+
+**Fixed-width** (no extra required — pandas native):
+
+```python
+FilesystemToDatabaseOperator(
+    task_id='load_fixed_width',
+    filesystem_conn_id='my_data_lake',
+    database_conn_id='my_postgres',
+    filesystem_path='raw/exports/{{ ds }}/',
+    db_table='transactions',
+    source_format='fixed_width',
+    source_format_options={
+        'colspecs': [(0, 10), (10, 25), (25, 35)],
+        'names': ['date', 'description', 'amount'],
+    },
+)
+```
+
+Each format is matched by file extension: `.csv`/`.csv.gz`, `.json`/`.json.gz`, `.parquet`/`.parquet.gz`, `.xlsx`/`.xls`, `.avro`, `.fwf`/`.txt`/`.dat`. Files with other extensions in the same prefix are silently skipped.
 
 ### DuckdbToDeltalake
 
@@ -473,6 +523,50 @@ Each environment maps to a distinct colour across all channels so alerts are rec
 | `PROD` | 🔴 red | Attention (red) | #ED4245 |
 | `STG` | 🟡 yellow | Warning (orange) | #FF8C00 |
 | `DEV` | 🟢 green | Good (green) | #57F287 |
+
+---
+
+## Testing Utilities
+
+### MockFilesystem
+
+`MockFilesystem` is an in-memory implementation of `FilesystemProtocol` for unit testing. It requires no Docker, no cloud credentials, and no network — all files are stored in a plain Python dict.
+
+```python
+from airflow_toolkit.testing import MockFilesystem
+
+# Pre-load files at construction time
+fs = MockFilesystem({
+    "raw/orders/2024-01-01/data.csv": b"id,amount\n1,100\n2,200",
+})
+
+# Or write files programmatically
+fs.write(b"id,amount\n3,300", "raw/orders/2024-01-02/data.csv")
+
+# Inspect the result in assertions
+assert fs.check_file("raw/orders/2024-01-01/data.csv")
+assert len(fs.list_files("raw/orders/")) == 2
+assert fs.files["raw/orders/2024-01-01/data.csv"] == b"id,amount\n1,100\n2,200"
+```
+
+Use it to patch `FilesystemFactory.get_data_lake_filesystem` in your operator tests:
+
+```python
+from unittest.mock import patch
+from airflow_toolkit.testing import MockFilesystem
+
+def test_my_pipeline(tmp_path):
+    fs = MockFilesystem({"data/file.csv": b"id,name\n1,Alice"})
+
+    with patch(
+        "airflow_toolkit.filesystems.filesystem_factory.FilesystemFactory.get_data_lake_filesystem",
+        return_value=fs,
+    ):
+        # run your operator or task here
+        ...
+```
+
+`MockFilesystem` implements the full `FilesystemProtocol`: `read`, `write`, `delete_file`, `create_prefix`, `delete_prefix`, `check_file`, `check_prefix`, `list_files`.
 
 ---
 

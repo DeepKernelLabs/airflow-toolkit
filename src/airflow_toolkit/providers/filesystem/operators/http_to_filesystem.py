@@ -9,12 +9,8 @@ from typing import (
     Any,
     Callable,
     Generator,
-    Literal,
     Optional,
-    Type,
 )
-
-from typing import TypedDict
 
 import jmespath
 import pandas as pd
@@ -25,15 +21,19 @@ from airflow.utils.helpers import merge_dicts
 from requests import Response
 
 from airflow_toolkit._compact.airflow_shim import BaseOperator, Context, BaseHook
-from airflow_toolkit.compression_utils import CompressionOptions, compress
+from airflow_toolkit.compression_utils import compress
 from airflow_toolkit.exceptions import ApiResponseTypeError
 from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
 from airflow_toolkit.protocols import HttpTransformation
+from airflow_toolkit.types import (
+    CompressionOptions,
+    RequestSpec,
+    RequestState,
+    SaveFormat,
+)
 
 if TYPE_CHECKING:
     from requests.auth import AuthBase
-
-SaveFormat = Literal["jsonl"]
 
 
 class HttpBatchOperator(HttpOperator):
@@ -316,34 +316,6 @@ class HttpToFilesystem(BaseOperator):
         if isinstance(value, str):
             return BytesIO(value.encode())
         raise TypeError(f"Unsupported transformation output type: {type(value)!r}")
-
-
-class RequestSpec(TypedDict, total=False):
-    """User-provided per-request overrides (all keys optional)."""
-
-    endpoint: str
-    method: str
-    data: Any
-    headers: dict[str, str]
-    auth_type: Type["AuthBase"] | None
-    jmespath_expression: str | None
-    save_format: "SaveFormat"
-    source_format: "SaveFormat"
-    compression: "CompressionOptions" | None
-
-
-class RequestState(TypedDict):
-    """Fully-resolved runtime state (all keys present)."""
-
-    endpoint: str | None
-    method: str
-    data: Any
-    headers: dict[str, str] | None
-    auth_type: Type["AuthBase"] | None
-    jmespath_expression: str | None
-    save_format: "SaveFormat"
-    source_format: "SaveFormat"
-    compression: "CompressionOptions" | None
 
 
 class MultiHttpToFilesystem(HttpToFilesystem):

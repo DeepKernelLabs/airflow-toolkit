@@ -15,6 +15,8 @@ import urllib.parse
 from collections.abc import Iterator, Mapping
 from typing import Any, Literal
 
+from airflow_toolkit.types import MetadataSpec
+
 import pandas as pd
 from sqlalchemy import (
     Boolean,
@@ -39,6 +41,29 @@ from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
 logger = logging.getLogger(__name__)
 
 _BATCH_SIZE = 50_000
+
+# Maps source_format names to the file extensions they match.
+# Used in execute() to skip blobs that don't belong to the selected format.
+_FORMAT_EXTENSIONS: dict[str, tuple[str, ...]] = {
+    "csv": (".csv", ".csv.gz"),
+    "json": (".json", ".json.gz"),
+    "parquet": (".parquet", ".parquet.gz"),
+    "excel": (".xlsx", ".xls"),
+    "avro": (".avro",),
+    "fixed_width": (".fwf", ".txt", ".dat"),
+}
+
+# Canonical extension for the temp file created in execute().
+# Must match what the underlying reader expects (e.g. pandas read_excel
+# infers the engine from the file extension).
+_FORMAT_TEMP_SUFFIX: dict[str, str] = {
+    "csv": ".csv",
+    "json": ".json",
+    "parquet": ".parquet",
+    "excel": ".xlsx",
+    "avro": ".avro",
+    "fixed_width": ".fwf",
+}
 
 type_mapping: dict[str, type[Any]] = {
     "int64": Integer,
@@ -76,11 +101,13 @@ class FilesystemToDatabaseOperator(BaseOperator):
         filesystem_path: str,
         db_table: str,
         db_schema: str | None = None,
-        source_format: Literal["csv", "json", "parquet"] = "csv",
+        source_format: Literal[
+            "csv", "json", "parquet", "excel", "avro", "fixed_width"
+        ] = "csv",
         source_format_options: Mapping[str, Any] | None = None,
         batch_size: int = _BATCH_SIZE,
         table_aggregation_type: Literal["append", "fail", "replace"] = "append",
-        metadata: Mapping[str, str] | None = None,
+        metadata: MetadataSpec | None = None,
         metadata_columns_in_uppercase: bool = True,
         include_source_path: bool = True,
         normalize_unicode: bool = False,
@@ -157,11 +184,12 @@ class FilesystemToDatabaseOperator(BaseOperator):
         if self.idempotent:
             self._delete_existing_run_data(engine)
 
+        valid_extensions = _FORMAT_EXTENSIONS.get(
+            self.source_format, (f".{self.source_format}",)
+        )
         first_batch = True
         for blob_path in filesystem.list_files(prefix=self.filesystem_path):
-            if not blob_path.endswith(
-                (f".{self.source_format}", f".{self.source_format}.gz")
-            ):
+            if not blob_path.endswith(valid_extensions):
                 logger.warning(
                     f"Blob {blob_path} is not in the right format. Skipping..."
                 )
@@ -175,7 +203,10 @@ class FilesystemToDatabaseOperator(BaseOperator):
                 f"Downloaded {file_mb:.1f} MB in {time.monotonic() - dl_start:.1f}s"
             )
 
-            tmp_fd, tmp_path = tempfile.mkstemp(suffix=f".{self.source_format}")
+            tmp_suffix = _FORMAT_TEMP_SUFFIX.get(
+                self.source_format, f".{self.source_format}"
+            )
+            tmp_fd, tmp_path = tempfile.mkstemp(suffix=tmp_suffix)
             try:
                 with os.fdopen(tmp_fd, "wb") as tmp_file:
                     tmp_file.write(raw_bytes)
@@ -310,6 +341,19 @@ class FilesystemToDatabaseOperator(BaseOperator):
                 if peek_opts.get("lines"):
                     return set(pd.read_json(path, nrows=1, **peek_opts).columns)
                 return set(pd.read_json(path, **peek_opts).columns)
+            case "excel":
+                peek_opts = {k: v for k, v in options.items() if k != "sheet_name"}
+                return set(pd.read_excel(path, nrows=0, **peek_opts).columns)
+            case "avro":
+                import fastavro
+
+                with open(path, "rb") as f:
+                    reader = fastavro.reader(f)
+                    schema = reader.writer_schema
+                    return {field["name"] for field in schema["fields"]}
+            case "fixed_width":
+                peek_opts = {k: v for k, v in options.items() if k != "chunksize"}
+                return set(pd.read_fwf(path, nrows=0, **peek_opts).columns)
             case _:
                 return set()
 
@@ -398,6 +442,25 @@ class FilesystemToDatabaseOperator(BaseOperator):
                     yield from pd.read_json(path, chunksize=self.batch_size, **options)
                 else:
                     yield pd.read_json(path, **options)
+            case "excel":
+                df = pd.read_excel(path, **options)
+                for start in range(0, max(len(df), 1), self.batch_size):
+                    yield df.iloc[start : start + self.batch_size].copy()
+            case "avro":
+                import fastavro
+
+                with open(path, "rb") as f:
+                    reader = fastavro.reader(f)
+                    batch: list[dict[str, Any]] = []
+                    for record in reader:
+                        batch.append(record)
+                        if len(batch) >= self.batch_size:
+                            yield pd.DataFrame(batch)
+                            batch = []
+                    if batch:
+                        yield pd.DataFrame(batch)
+            case "fixed_width":
+                yield from pd.read_fwf(path, chunksize=self.batch_size, **options)
             case _:
                 raise ValueError(f"Unknown source format {self.source_format}")
 
@@ -544,5 +607,26 @@ class FilesystemToDatabaseOperator(BaseOperator):
                 return pd.read_json(path_or_buf, **options)
             case "parquet":
                 return pd.read_parquet(path_or_buf, **options)
+            case "excel":
+                return pd.read_excel(path_or_buf, **options)
+            case "avro":
+                import fastavro
+
+                if isinstance(path_or_buf, (str, bytes)):
+                    buf = io.BytesIO(
+                        path_or_buf
+                        if isinstance(path_or_buf, bytes)
+                        else path_or_buf.encode()
+                    )
+                else:
+                    buf = (
+                        path_or_buf
+                        if isinstance(path_or_buf, io.BytesIO)
+                        else io.BytesIO(path_or_buf.read().encode())
+                    )
+                records = list(fastavro.reader(buf))
+                return pd.DataFrame(records)
+            case "fixed_width":
+                return pd.read_fwf(path_or_buf, **options)
             case _:
                 raise ValueError(f"Unknown source format {self.source_format}")

@@ -1,10 +1,10 @@
 import gzip
 import zipfile
 from io import BytesIO
-from typing import Literal, Union
+
+from airflow_toolkit.types import CompressionOptions
 
 DEFAULT_ZIP_FILENAME = "file.zip"
-CompressionOptions = Union[Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"], None]
 
 
 def gzip_data(data: bytes) -> bytes:

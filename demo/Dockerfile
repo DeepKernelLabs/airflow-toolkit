@@ -30,4 +30,6 @@ RUN pip install --no-cache-dir \
     "requests>=2.31.0" \
     "jmespath>=1.0.1,<2" \
     "dbt-postgres>=1.9.0,<2" \
-    "astronomer-cosmos>=1.11.0,<2"
+    "astronomer-cosmos>=1.11.0,<2" \
+    "openpyxl>=3.1" \
+    "fastavro>=1.9"

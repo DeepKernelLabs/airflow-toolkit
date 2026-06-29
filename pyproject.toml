@@ -1,6 +1,6 @@
 [project]
 name = "airflow-toolkit"
-version = "2.2.0"
+version = "2.3.0"
 description = "A toolkit of operators, hooks and utilities for Apache Airflow 3"
 authors = [{ name = "Biel Llobera", email = "biel_llobera@dkl.digital" }]
 requires-python = ">=3.11,<3.15"
@@ -49,6 +49,12 @@ duckdb = [
 sqlite = [
     "apache-airflow-providers-sqlite",
 ]
+excel = [
+    "openpyxl>=3.1",
+]
+avro = [
+    "fastavro>=1.9",
+]
 airflow3-full = [
     "apache-airflow>=3,<4",
     "apache-airflow-providers-fab>=3.0.0",
@@ -66,6 +72,8 @@ airflow3-full = [
     "jmespath>=1.0.1,<2",
     "airflow-provider-duckdb>=0.1.2",
     "apache-airflow-providers-sqlite",
+    "openpyxl>=3.1",
+    "fastavro>=1.9",
 ]
 
 [dependency-groups]
