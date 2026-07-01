@@ -86,8 +86,8 @@ pip install "airflow-toolkit[airflow3-full]"
 | `http` | `providers-http`, `requests`, `jmespath`, `pandas` | `HttpToFilesystem`, `MultiHttpToFilesystem` |
 | `duckdb` | `airflow-provider-duckdb` | `DuckdbToDeltalake` operator |
 | `sqlite` | `providers-sqlite` | SQLite as source or destination |
-| `excel` | `openpyxl` | Excel (`.xlsx` / `.xls`) support in `FilesystemToDatabase` |
-| `avro` | `fastavro` | Avro support in `FilesystemToDatabase` |
+| `excel` | `openpyxl` | Excel (`.xlsx` / `.xls`) support in `FilesystemToDatabase` and `HttpToFilesystem` |
+| `avro` | `fastavro` | Avro support in `FilesystemToDatabase` and `HttpToFilesystem` |
 | `airflow3-full` | all of the above | Quick start / development |
 
 ---
@@ -132,7 +132,7 @@ Changing the connection's `conn_type` is all that is needed to switch backends �
 
 ### HttpToFilesystem
 
-Calls an HTTP endpoint and writes the response to any filesystem. Supports pagination, JMESPath filtering, compression, and custom response transformations.
+Calls an HTTP endpoint and writes the response to any filesystem. Supports pagination, JMESPath filtering, compression, OAuth 2.0 authentication, rate limiting, and custom response transformations.
 
 ```python
 from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import HttpToFilesystem
@@ -149,7 +149,7 @@ HttpToFilesystem(
 )
 ```
 
-With cursor-based pagination:
+**With cursor-based pagination:**
 
 ```python
 def next_page(response):
@@ -171,9 +171,70 @@ HttpToFilesystem(
 )
 ```
 
+**With OAuth 2.0 Client Credentials:**
+
+`OAuth2ClientCredentials.client_credentials()` returns a configured auth class that fetches the token lazily on the first request and refreshes it automatically 30 seconds before expiry — no manual token management required.
+
+```python
+from airflow_toolkit.providers.filesystem.operators.auth import OAuth2ClientCredentials
+
+HttpToFilesystem(
+    task_id='fetch_protected_data',
+    http_conn_id='my_api',
+    filesystem_conn_id='my_data_lake',
+    filesystem_path='raw/data/{{ ds }}/',
+    endpoint='/api/v1/data',
+    method='GET',
+    save_format='jsonl',
+    auth_type=OAuth2ClientCredentials.client_credentials(
+        token_url='https://auth.example.com/oauth2/token',
+        client_id='{{ var.value.oauth2_client_id }}',
+        client_secret='{{ var.value.oauth2_client_secret }}',
+        scope='read',           # optional
+    ),
+)
+```
+
+**With rate limiting:**
+
+Use `requests_per_second` to cap how fast paginated requests are sent. This is useful when the API enforces a rate limit.
+
+```python
+HttpToFilesystem(
+    task_id='fetch_with_rate_limit',
+    http_conn_id='my_api',
+    filesystem_conn_id='my_data_lake',
+    filesystem_path='raw/events/{{ ds }}/',
+    endpoint='/api/v1/events',
+    method='GET',
+    pagination_function=next_page,
+    save_format='jsonl',
+    requests_per_second=3.0,    # max 3 requests per second between pages
+)
+```
+
+**Supported response formats:**
+
+`save_format` controls how the response is written to the filesystem. For APIs that return binary formats natively (e.g. a reporting API that streams Excel files), set `source_format` to match the response content type:
+
+| `source_format` / `save_format` | File extension | Notes |
+|---|---|---|
+| `json` | `.json` | Single JSON object or array |
+| `jsonl` | `.jsonl` | Array response written as one record per line |
+| `csv` | `.csv` | Raw CSV text from the response |
+| `xml` | `.xml` | Raw XML text from the response |
+| `parquet` | `.parquet` | Binary passthrough — API must return Parquet bytes |
+| `excel` | `.xlsx` | Binary passthrough — API must return Excel bytes (requires `[excel]`) |
+| `avro` | `.avro` | Binary passthrough — API must return Avro bytes (requires `[avro]`) |
+| `fixed_width` | `.fwf` | Fixed-width text from the response |
+
+All text and JSON formats support gzip/zip compression via the `compression` parameter.
+
 ### MultiHttpToFilesystem
 
-Runs multiple HTTP requests in a single Airflow task, saving each response as a separate file. Useful for fetching multiple entities or date ranges without creating one task per request.
+Runs multiple HTTP requests in a single Airflow task, saving each response as a separate file. Requests can run **sequentially** (with optional rate limiting) or **in parallel** using a thread pool.
+
+**Sequential with rate limiting:**
 
 ```python
 from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import MultiHttpToFilesystem
@@ -185,6 +246,7 @@ MultiHttpToFilesystem(
     filesystem_path='raw/reference/{{ ds }}/',
     method='GET',
     save_format='jsonl',
+    requests_per_second=2.0,    # max 2 requests per second between calls
     multi_requests=[
         {'endpoint': '/api/v1/categories'},
         {'endpoint': '/api/v1/statuses'},
@@ -192,6 +254,31 @@ MultiHttpToFilesystem(
     ],
 )
 ```
+
+**Parallel execution:**
+
+Set `max_workers` to run requests concurrently using a thread pool. Each request writes to its own file — there are no file collisions.
+
+```python
+MultiHttpToFilesystem(
+    task_id='fetch_users_parallel',
+    http_conn_id='my_api',
+    filesystem_conn_id='my_data_lake',
+    filesystem_path='raw/users/{{ ds }}/',
+    method='GET',
+    save_format='json',
+    max_workers=5,              # up to 5 concurrent threads
+    multi_requests=[
+        {'endpoint': '/api/v1/users/1'},
+        {'endpoint': '/api/v1/users/2'},
+        {'endpoint': '/api/v1/users/3'},
+        {'endpoint': '/api/v1/users/4'},
+        {'endpoint': '/api/v1/users/5'},
+    ],
+)
+```
+
+> Rate limiting (`requests_per_second`) applies only in sequential mode. In parallel mode the thread pool controls concurrency — use `max_workers` to avoid overwhelming the API.
 
 Each entry in `multi_requests` can override any base parameter (`endpoint`, `method`, `headers`, `data`, `jmespath_expression`, `save_format`, `compression`).
 
