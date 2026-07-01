@@ -55,6 +55,8 @@ x-airflow-common: &airflow-common
     AIRFLOW_CONN_DEMO_POSTGRES: '{"conn_type": "postgres", "host": "postgres", "login": "dw_user", "password": "dw_password", "schema": "demo_dw", "port": 5432}'
     # Slack connection — points to local webhook-logger for demo
     AIRFLOW_CONN_SLACK_WEBHOOK_NOTIFICATION_CONN: '{"conn_type": "http", "host": "http://webhook-logger:8099/slack"}'
+    # FTP connection — apunta al servidor demo-ftp incluido en este compose
+    AIRFLOW_CONN_DEMO_FTP: '{"conn_type": "ftp", "host": "demo-ftp", "login": "demo", "password": "demo123", "port": 21}'
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
@@ -296,6 +298,21 @@ services:
       postgres:
         condition: service_healthy
     restart: "no"
+
+  # ----------------------------------------------------------
+  #  demo-ftp — servidor FTP local para probar el backend FTP (v2.5.0)
+  #  Credenciales: demo / demo123
+  #  Directorio raíz FTP: /home/demo  (chrooted)
+  # ----------------------------------------------------------
+  demo-ftp:
+    image: delfer/alpine-ftp-server
+    environment:
+      USERS: "demo|demo123|/home/demo|1000"
+      ADDRESS: demo-ftp
+    ports:
+      - "21:21"
+      - "21000-21010:21000-21010"
+    restart: unless-stopped
 
   # ----------------------------------------------------------
   #  MailHog — SMTP catcher for email notifications

@@ -52,7 +52,7 @@ Apache Airflow's built-in operators are point-to-point: one operator per source/
 
 `airflow-toolkit` solves this with two ideas:
 
-1. **A common `FilesystemProtocol`** — a thin, uniform interface over S3, Azure Blob, GCS, ADLS, SFTP, local filesystem, and Databricks Volumes. Operators talk to the protocol, not to the backend. Swapping backends requires no code change in the DAG.
+1. **A common `FilesystemProtocol`** — a thin, uniform interface over S3, Azure Blob, GCS, ADLS, SFTP, FTP, local filesystem, Databricks Volumes, SharePoint, and Google Drive. Operators talk to the protocol, not to the backend. Swapping backends requires no code change in the DAG.
 
 2. **Operators by technology family** — instead of one operator per combination, we provide generic operators (`XToFilesystem`, `FilesystemToX`) that work with any backend through the protocol. The matrix collapses from N×M to a handful of composable building blocks.
 
@@ -88,6 +88,9 @@ pip install "airflow-toolkit[airflow3-full]"
 | `sqlite` | `providers-sqlite` | SQLite as source or destination |
 | `excel` | `openpyxl` | Excel (`.xlsx` / `.xls`) support in `FilesystemToDatabase` and `HttpToFilesystem` |
 | `avro` | `fastavro` | Avro support in `FilesystemToDatabase` and `HttpToFilesystem` |
+| `ftp` | `providers-ftp` | FTP filesystem backend |
+| `sharepoint` | `Office365-REST-Python-Client` | SharePoint filesystem backend |
+| `google_drive` | `google-api-python-client`, `google-auth` | Google Drive filesystem backend |
 | `airflow3-full` | all of the above | Quick start / development |
 
 ---
@@ -104,15 +107,18 @@ pip install "airflow-toolkit[airflow3-full]"
 
 `FilesystemProtocol` is a common interface implemented for the following backends. The correct implementation is resolved at runtime from the Airflow connection's `conn_type`:
 
-| Backend | `conn_type` | Provider |
+| Backend | `conn_type` | Provider / Extra |
 |---|---|---|
 | Amazon S3 | `aws` | `apache-airflow-providers-amazon` |
 | Azure Blob Storage / ADLS | `wasb` | `apache-airflow-providers-microsoft-azure` |
 | Google Cloud Storage | `google_cloud_platform` | `apache-airflow-providers-google` |
 | SFTP | `sftp` | `apache-airflow-providers-sftp` |
+| FTP | `ftp` | `apache-airflow-providers-ftp` |
 | Local filesystem | `fs` | built-in |
 | Azure File Share (Service Principal) | `azure_file_share_sp` | this library |
 | Databricks Unity Catalog Volume | `azure_databricks_volume` | this library |
+| SharePoint | `sharepoint` | this library (`[sharepoint]`) |
+| Google Drive | `google_drive` | this library (`[google_drive]`) |
 
 Operators resolve the backend automatically:
 
@@ -463,7 +469,7 @@ FilesystemFileSensor(
 )
 ```
 
-Supported `conn_type` values: `aws`, `wasb`, `google_cloud_platform`, `sftp`, `fs`, `azure_file_share_sp`, `azure_databricks_volume`.
+Supported `conn_type` values: `aws`, `wasb`, `google_cloud_platform`, `sftp`, `ftp`, `fs`, `azure_file_share_sp`, `azure_databricks_volume`, `sharepoint`, `google_drive`.
 
 ---
 
@@ -492,6 +498,50 @@ Once the connection is defined, pass it as `filesystem_conn_id` to any operator.
 ### AzureDatabricksVolumeHook
 
 Provides access to Databricks Unity Catalog Volumes as a filesystem backend. Use `conn_type: azure_databricks_volume`.
+
+### SharePointHook
+
+Connects to a SharePoint site using a Service Principal (OAuth2 client credentials). Use `conn_type: sharepoint`. Requires the `[sharepoint]` extra.
+
+```python
+AIRFLOW_CONN_MY_SHAREPOINT='{
+  "conn_type": "sharepoint",
+  "host": "<tenant>.sharepoint.com",
+  "login": "<client-id>",
+  "password": "<client-secret>",
+  "extra": {
+    "tenant_id": "<tenant-id>",
+    "site_path": "/sites/MySite"
+  }
+}'
+```
+
+Paths passed to operators are relative to the SharePoint site root (e.g. `Documents/exports/file.csv`). Internally converted to server-relative URLs (`/sites/MySite/Documents/exports/file.csv`).
+
+### GoogleDriveHook
+
+Connects to Google Drive using a Service Account. Use `conn_type: google_drive`. Requires the `[google_drive]` extra. Supports both personal Drive and Shared Drives (Team Drives).
+
+```python
+# Personal Drive
+AIRFLOW_CONN_MY_GDRIVE='{
+  "conn_type": "google_drive",
+  "extra": {
+    "keyfile_json": "{\"type\": \"service_account\", ...}"
+  }
+}'
+
+# Shared Drive (Team Drive)
+AIRFLOW_CONN_MY_GDRIVE='{
+  "conn_type": "google_drive",
+  "extra": {
+    "keyfile_json": "{\"type\": \"service_account\", ...}",
+    "shared_drive_id": "<drive-id>"
+  }
+}'
+```
+
+Paths are relative to the Drive root (e.g. `exports/2024-01-01/data.csv`). File and folder IDs are resolved by name traversal and cached for the lifetime of a task. Omitting `shared_drive_id` targets personal Drive (root = `"root"`).
 
 ### AzureDatabricksSqlHook
 

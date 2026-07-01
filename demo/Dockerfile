@@ -25,6 +25,7 @@ RUN pip install --no-cache-dir \
     "apache-airflow-providers-postgres>=5" \
     "apache-airflow-providers-http>=5.6.4" \
     "apache-airflow-providers-fab>=3.0.0" \
+    "apache-airflow-providers-ftp>=3" \
     "pendulum>=3,<4" \
     "pandas>=2.1.1,<3" \
     "requests>=2.31.0" \

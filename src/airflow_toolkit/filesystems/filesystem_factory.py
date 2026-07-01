@@ -66,6 +66,31 @@ class FilesystemFactory:
                 azure_databricks_volume_conn_id=connection.conn_id
             )
             return AzureDatabricksVolumeFilesystem(hook)
+        elif connection.conn_type == "ftp":
+            from airflow.providers.ftp.hooks.ftp import FTPHook
+
+            from airflow_toolkit.filesystems.impl.ftp_filesystem import FTPFilesystem
+
+            hook = FTPHook(ftp_conn_id=connection.conn_id)
+            return FTPFilesystem(hook)
+        elif connection.conn_type == "sharepoint":
+            from airflow_toolkit.filesystems.impl.sharepoint_filesystem import (
+                SharePointFilesystem,
+            )
+            from airflow_toolkit.providers.microsoft.hooks.sharepoint import (
+                SharePointHook,
+            )
+
+            hook = SharePointHook(conn_id=connection.conn_id)
+            return SharePointFilesystem(hook)
+        elif connection.conn_type == "google_drive":
+            from airflow_toolkit.filesystems.impl.google_drive_filesystem import (
+                GoogleDriveFilesystem,
+            )
+            from airflow_toolkit.providers.google.hooks.drive import GoogleDriveHook
+
+            hook = GoogleDriveHook(conn_id=connection.conn_id)
+            return GoogleDriveFilesystem(hook)
         else:
             raise NotImplementedError(
                 f"Data Lake type {connection.conn_type} is not supported"

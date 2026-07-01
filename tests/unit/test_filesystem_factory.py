@@ -1,24 +1,35 @@
 """Unit tests for FilesystemFactory — verifies correct routing by conn_type."""
 
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory
-from airflow_toolkit.filesystems.impl.blob_storage_filesystem import (
+# Stub apache-airflow-providers-ftp which is not installed in the dev venv.
+sys.modules.setdefault("airflow.providers.ftp", MagicMock())
+sys.modules.setdefault("airflow.providers.ftp.hooks", MagicMock())
+sys.modules.setdefault("airflow.providers.ftp.hooks.ftp", MagicMock())
+
+from airflow_toolkit.filesystems.filesystem_factory import FilesystemFactory  # noqa: E402
+from airflow_toolkit.filesystems.impl.blob_storage_filesystem import (  # noqa: E402
     BlobStorageFilesystem,
 )
-from airflow_toolkit.filesystems.impl.google_cloud_storage_filesystem import (
+from airflow_toolkit.filesystems.impl.google_cloud_storage_filesystem import (  # noqa: E402
     GCSFilesystem,
 )
-from airflow_toolkit.filesystems.impl.local_filesystem import LocalFilesystem
-from airflow_toolkit.filesystems.impl.s3_filesystem import S3Filesystem
-from airflow_toolkit.filesystems.impl.sftp_filesystem import SFTPFilesystem
-from airflow_toolkit.filesystems.impl.azure_file_share_filesystem import (
+from airflow_toolkit.filesystems.impl.local_filesystem import LocalFilesystem  # noqa: E402
+from airflow_toolkit.filesystems.impl.s3_filesystem import S3Filesystem  # noqa: E402
+from airflow_toolkit.filesystems.impl.sftp_filesystem import SFTPFilesystem  # noqa: E402
+from airflow_toolkit.filesystems.impl.azure_file_share_filesystem import (  # noqa: E402
     AzureFileShareFilesystem,
 )
-from airflow_toolkit.filesystems.impl.azure_databricks_volume_filesystem import (
+from airflow_toolkit.filesystems.impl.azure_databricks_volume_filesystem import (  # noqa: E402
     AzureDatabricksVolumeFilesystem,
+)
+from airflow_toolkit.filesystems.impl.ftp_filesystem import FTPFilesystem  # noqa: E402
+from airflow_toolkit.filesystems.impl.sharepoint_filesystem import SharePointFilesystem  # noqa: E402
+from airflow_toolkit.filesystems.impl.google_drive_filesystem import (  # noqa: E402
+    GoogleDriveFilesystem,
 )
 
 
@@ -87,6 +98,27 @@ def test_azure_databricks_volume_returns_databricks_filesystem(mock_hook):
     mock_hook.assert_called_once_with(azure_databricks_volume_conn_id="test_conn")
 
 
+@patch("airflow.providers.ftp.hooks.ftp.FTPHook")
+def test_ftp_returns_ftp_filesystem(mock_hook):
+    fs = FilesystemFactory.get_data_lake_filesystem(_conn("ftp"))
+    assert isinstance(fs, FTPFilesystem)
+    mock_hook.assert_called_once_with(ftp_conn_id="test_conn")
+
+
+@patch("airflow_toolkit.providers.microsoft.hooks.sharepoint.SharePointHook")
+def test_sharepoint_returns_sharepoint_filesystem(mock_hook):
+    fs = FilesystemFactory.get_data_lake_filesystem(_conn("sharepoint"))
+    assert isinstance(fs, SharePointFilesystem)
+    mock_hook.assert_called_once_with(conn_id="test_conn")
+
+
+@patch("airflow_toolkit.providers.google.hooks.drive.GoogleDriveHook")
+def test_google_drive_returns_google_drive_filesystem(mock_hook):
+    fs = FilesystemFactory.get_data_lake_filesystem(_conn("google_drive"))
+    assert isinstance(fs, GoogleDriveFilesystem)
+    mock_hook.assert_called_once_with(conn_id="test_conn")
+
+
 # ---------------------------------------------------------------------------
 # Error path: unsupported type raises NotImplementedError
 # ---------------------------------------------------------------------------
@@ -98,5 +130,5 @@ def test_unsupported_conn_type_raises_not_implemented():
 
 
 def test_error_message_contains_conn_type():
-    with pytest.raises(NotImplementedError, match="ftp"):
-        FilesystemFactory.get_data_lake_filesystem(_conn("ftp"))
+    with pytest.raises(NotImplementedError, match="redis"):
+        FilesystemFactory.get_data_lake_filesystem(_conn("redis"))

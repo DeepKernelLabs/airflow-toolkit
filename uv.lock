@@ -231,7 +231,7 @@ wheels = [
 
 [[package]]
 name = "airflow-toolkit"
-version = "2.4.0"
+version = "2.5.0"
 source = { editable = "." }
 
 [package.optional-dependencies]
@@ -245,6 +245,7 @@ airflow3-full = [
     { name = "apache-airflow" },
     { name = "apache-airflow-providers-amazon" },
     { name = "apache-airflow-providers-fab" },
+    { name = "apache-airflow-providers-ftp" },
     { name = "apache-airflow-providers-google" },
     { name = "apache-airflow-providers-http" },
     { name = "apache-airflow-providers-microsoft-azure" },
@@ -254,7 +255,10 @@ airflow3-full = [
     { name = "databricks-sql-connector" },
     { name = "deltalake" },
     { name = "fastavro" },
+    { name = "google-api-python-client" },
+    { name = "google-auth" },
     { name = "jmespath" },
+    { name = "office365-rest-python-client" },
     { name = "openpyxl" },
     { name = "pandas", version = "2.1.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
     { name = "pandas", version = "2.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
@@ -283,8 +287,15 @@ duckdb = [
 excel = [
     { name = "openpyxl" },
 ]
+ftp = [
+    { name = "apache-airflow-providers-ftp" },
+]
 google = [
     { name = "apache-airflow-providers-google" },
+]
+google-drive = [
+    { name = "google-api-python-client" },
+    { name = "google-auth" },
 ]
 http = [
     { name = "apache-airflow-providers-http" },
@@ -295,6 +306,9 @@ http = [
 ]
 sftp = [
     { name = "apache-airflow-providers-sftp" },
+]
+sharepoint = [
+    { name = "office365-rest-python-client" },
 ]
 sqlite = [
     { name = "apache-airflow-providers-sqlite" },
@@ -330,6 +344,8 @@ requires-dist = [
     { name = "apache-airflow-providers-amazon", marker = "extra == 'amazon'", specifier = ">=9.15.0" },
     { name = "apache-airflow-providers-fab", marker = "extra == 'airflow3'", specifier = ">=3.0.0" },
     { name = "apache-airflow-providers-fab", marker = "extra == 'airflow3-full'", specifier = ">=3.0.0" },
+    { name = "apache-airflow-providers-ftp", marker = "extra == 'airflow3-full'", specifier = ">=3" },
+    { name = "apache-airflow-providers-ftp", marker = "extra == 'ftp'", specifier = ">=3" },
     { name = "apache-airflow-providers-google", marker = "extra == 'airflow3-full'", specifier = ">=18" },
     { name = "apache-airflow-providers-google", marker = "extra == 'google'", specifier = ">=18" },
     { name = "apache-airflow-providers-http", marker = "extra == 'airflow3-full'", specifier = ">=5.6.4" },
@@ -348,8 +364,14 @@ requires-dist = [
     { name = "deltalake", marker = "extra == 'databricks'", specifier = ">=0.17.4,<2" },
     { name = "fastavro", marker = "extra == 'airflow3-full'", specifier = ">=1.9" },
     { name = "fastavro", marker = "extra == 'avro'", specifier = ">=1.9" },
+    { name = "google-api-python-client", marker = "extra == 'airflow3-full'", specifier = ">=2" },
+    { name = "google-api-python-client", marker = "extra == 'google-drive'", specifier = ">=2" },
+    { name = "google-auth", marker = "extra == 'airflow3-full'", specifier = ">=2" },
+    { name = "google-auth", marker = "extra == 'google-drive'", specifier = ">=2" },
     { name = "jmespath", marker = "extra == 'airflow3-full'", specifier = ">=1.0.1,<2" },
     { name = "jmespath", marker = "extra == 'http'", specifier = ">=1.0.1,<2" },
+    { name = "office365-rest-python-client", marker = "extra == 'airflow3-full'", specifier = ">=2.5" },
+    { name = "office365-rest-python-client", marker = "extra == 'sharepoint'", specifier = ">=2.5" },
     { name = "openpyxl", marker = "extra == 'airflow3-full'", specifier = ">=3.1" },
     { name = "openpyxl", marker = "extra == 'excel'", specifier = ">=3.1" },
     { name = "pandas", marker = "extra == 'airflow3-full'", specifier = ">=2.1.1,<3" },
@@ -360,7 +382,7 @@ requires-dist = [
     { name = "requests", marker = "extra == 'airflow3-full'", specifier = ">=2.31.0" },
     { name = "requests", marker = "extra == 'http'", specifier = ">=2.31.0" },
 ]
-provides-extras = ["airflow3", "databricks", "amazon", "google", "azure", "sftp", "http", "duckdb", "sqlite", "excel", "avro", "airflow3-full"]
+provides-extras = ["airflow3", "databricks", "amazon", "google", "azure", "sftp", "http", "duckdb", "sqlite", "excel", "avro", "ftp", "sharepoint", "google-drive", "airflow3-full"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -614,6 +636,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a1/4b/718b46228d2efed168156f86c9c0661b69be63b7f7664a410186f4b8878d/apache_airflow_providers_fab-3.6.1.tar.gz", hash = "sha256:3e06969666bce279e3b28e5a48dc2004d7acc64ce769a58303ff5941a324c9f0", size = 823937, upload-time = "2026-04-12T14:22:00.925Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/80/7c/60afdc9f62836bb2dc10d0bc1a5b90227362e04a3d600db34be710366152/apache_airflow_providers_fab-3.6.1-py3-none-any.whl", hash = "sha256:8f859585ecea6ee0d3f330c449349af3be393f481a265116393773e948d73b1c", size = 600764, upload-time = "2026-04-12T14:20:15.359Z" },
+]
+
+[[package]]
+name = "apache-airflow-providers-ftp"
+version = "3.15.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "apache-airflow" },
+    { name = "apache-airflow-providers-common-compat" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8a/49/6ee55e89e9fea5fd881112d6b4e687c8b7a1a4611dc494a302e96ec3df9a/apache_airflow_providers_ftp-3.15.1.tar.gz", hash = "sha256:cfc5cd63b6a755ed7f7584d25372057031dffb91332ac8d0d8ef5dc82b87e3be", size = 70093, upload-time = "2026-06-22T19:59:43.452Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1c/fe/7bd0f6160958a3b1a856defb029eee4bf717e465d09c9eacc940dc968c09/apache_airflow_providers_ftp-3.15.1-py3-none-any.whl", hash = "sha256:bdfa3d0188d29908e15e0ec8b451058a14492b94551d965380d00ef1c7249e74", size = 22144, upload-time = "2026-06-22T19:59:00.469Z" },
 ]
 
 [[package]]
@@ -4925,6 +4960,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0b/5f/19930f824ffeb0ad4372da4812c50edbd1434f678c90c2733e1188edfc63/oauthlib-3.3.1.tar.gz", hash = "sha256:0f0f8aa759826a193cf66c12ea1af1637f87b9b4622d46e866952bb022e538c9", size = 185918, upload-time = "2025-06-19T22:48:08.269Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/be/9c/92789c596b8df838baa98fa71844d84283302f7604ed565dafe5a6b5041a/oauthlib-3.3.1-py3-none-any.whl", hash = "sha256:88119c938d2b8fb88561af5f6ee0eec8cc8d552b7bb1f712743136eb7523b7a1", size = 160065, upload-time = "2025-06-19T22:48:06.508Z" },
+]
+
+[[package]]
+name = "office365-rest-python-client"
+version = "2.6.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "msal" },
+    { name = "pytz" },
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bc/04/6dce2d581c54a8e55a3b128cf79a93821a68a62bb9a956e65476c5bb247e/office365_rest_python_client-2.6.2.tar.gz", hash = "sha256:ce27f5a1c0cc3ff97041ccd9b386145692be4c64739f243f7d6ac3edbe0a3c46", size = 659460, upload-time = "2025-05-11T10:24:21.895Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3a/a4/611155711f8af347875c15b8b83f5fd9e978bd4de45f90085b9a583b684d/Office365_REST_Python_Client-2.6.2-py3-none-any.whl", hash = "sha256:06fc6829c39b503897caa9d881db419d7f97a8e4f1c95c4c2d12db36ea6c955d", size = 1337139, upload-time = "2025-05-11T10:24:18.926Z" },
 ]
 
 [[package]]
