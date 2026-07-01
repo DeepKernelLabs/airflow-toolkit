@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from io import BytesIO, StringIO
 from typing import (
     TYPE_CHECKING,
@@ -38,7 +40,10 @@ if TYPE_CHECKING:
 
 class HttpBatchOperator(HttpOperator):
     def execute(
-        self, context: Context, use_new_data_parameters_on_pagination=False
+        self,
+        context: Context,
+        use_new_data_parameters_on_pagination: bool = False,
+        delay: float = 0.0,
     ) -> Generator[Any, None, None]:
         self.log.info("Calling HTTP method")
 
@@ -49,16 +54,22 @@ class HttpBatchOperator(HttpOperator):
         for response in self.paginate_sync(
             response=response,
             use_new_data_parameters_on_pagination=use_new_data_parameters_on_pagination,
+            delay=delay,
         ):
             yield self.process_response(context=context, response=response)
 
     def paginate_sync(
-        self, response: Response, use_new_data_parameters_on_pagination=False
+        self,
+        response: Response,
+        use_new_data_parameters_on_pagination: bool = False,
+        delay: float = 0.0,
     ) -> Generator[Response, None, None]:
         if not self.pagination_function:
             return
 
         while True:
+            if delay > 0:
+                time.sleep(delay)
             next_page_params = self.pagination_function(response)
             if not next_page_params:
                 break
@@ -71,7 +82,9 @@ class HttpBatchOperator(HttpOperator):
         return
 
     def _merge_next_page_parameters(
-        self, next_page_params: dict, use_new_data_parameters_on_pagination=False
+        self,
+        next_page_params: dict,
+        use_new_data_parameters_on_pagination: bool = False,
     ) -> dict:
         """Merge initial request parameters with next page parameters.
 
@@ -119,7 +132,21 @@ class HttpToFilesystem(BaseOperator):
     template_fields_renderers = HttpOperator.template_fields_renderers
 
     json_response_source_format = ["json", "jsonl"]
-    binary_response_source_format = ["parquet"]
+    binary_response_source_format = ["parquet", "excel", "avro"]
+
+    # Maps source_format/save_format → file extension.
+    # Formats that differ from their name (excel → xlsx, fixed_width → fwf) are listed
+    # explicitly; all others fall back to using the format name as-is.
+    _FORMAT_EXTENSIONS: dict[str, str] = {
+        "json": "json",
+        "jsonl": "jsonl",
+        "xml": "xml",
+        "csv": "csv",
+        "parquet": "parquet",
+        "excel": "xlsx",
+        "avro": "avro",
+        "fixed_width": "fwf",
+    }
 
     def __init__(
         self,
@@ -142,6 +169,7 @@ class HttpToFilesystem(BaseOperator):
         data_transformation_kwargs: dict[str, Any] | None = None,
         file_number_start: int = 1,
         strict_response_schema: bool = True,
+        requests_per_second: float | None = None,
         *args,
         **kwargs,
     ):
@@ -170,14 +198,15 @@ class HttpToFilesystem(BaseOperator):
         self.source_format = source_format if source_format else save_format
         self.file_number_start = file_number_start
         self.strict_response_schema = strict_response_schema
+        self.requests_per_second = requests_per_second
         self.kwargs = kwargs
 
         if (
-            self.save_format in self.binary_response_source_format
+            self.source_format in self.binary_response_source_format
             and self.compression is not None
         ):
             raise ValueError(
-                f"Compression is not supported for binary response save formats: {self.binary_response_source_format}"
+                f"Compression is not supported for binary source formats: {self.binary_response_source_format}"
             )
 
         if self.data_transformation and not callable(self.data_transformation):
@@ -204,10 +233,12 @@ class HttpToFilesystem(BaseOperator):
             response_filter=self._response_filter,
             pagination_function=self.pagination_function,
         )
+        delay = (1.0 / self.requests_per_second) if self.requests_per_second else 0.0
         for i, data in enumerate(
             http_batch_operator.execute(
                 context,
                 use_new_data_parameters_on_pagination=self.use_new_data_parameters_on_pagination,
+                delay=delay,
             ),
             start=self.file_number_start,
         ):
@@ -232,9 +263,9 @@ class HttpToFilesystem(BaseOperator):
                 )
                 filesystem_protocol.write(BytesIO(), success_file_path)
 
-    def _file_name(self, n_part) -> str:
-        file_name = f"part{n_part:04}.{self.save_format}"
-
+    def _file_name(self, n_part: int) -> str:
+        ext = self._FORMAT_EXTENSIONS.get(self.save_format, self.save_format)
+        file_name = f"part{n_part:04}.{ext}"
         if self.compression:
             file_name += f".{self.compression}"
         return file_name
@@ -263,7 +294,6 @@ class HttpToFilesystem(BaseOperator):
 
         self.response_filter_data = data
 
-        # Check if we have a custom data transformation
         if self.data_transformation and self.data_transformation_kwargs:
             transformed = self.data_transformation(
                 data, self.data_transformation_kwargs
@@ -272,8 +302,6 @@ class HttpToFilesystem(BaseOperator):
         elif self.data_transformation:
             transformed = self.data_transformation(data)
             return self._ensure_bytesio(transformed)
-
-        # If we don't have a custom data transformation, use the default one based on the source_format
 
         match self.source_format:
             case "json":
@@ -291,10 +319,10 @@ class HttpToFilesystem(BaseOperator):
                     return BytesIO()
                 return list_to_jsonl(data, self.compression)
 
-            case "xml":
+            case "xml" | "fixed_width":
                 return xml_to_binary(data, self.compression)
 
-            case "parquet":
+            case "parquet" | "excel" | "avro":
                 return self._ensure_bytesio(data)
 
             case "csv":
@@ -306,9 +334,6 @@ class HttpToFilesystem(BaseOperator):
                 )
 
     def _ensure_bytesio(self, value: BytesIO | bytes | str) -> BytesIO:
-        """
-        Ensure the transformation output is a BytesIO object.
-        """
         if isinstance(value, BytesIO):
             return value
         if isinstance(value, bytes):
@@ -329,25 +354,28 @@ class MultiHttpToFilesystem(HttpToFilesystem):
     Args:
         multi_requests: List of request specifications. Each item can override
                        any base operator parameter for that specific request.
+        max_workers: Number of threads for parallel execution. None (default) runs
+                     requests sequentially. Set to an integer to enable concurrency.
+                     Note: rate limiting (requests_per_second) is only applied in
+                     sequential mode.
 
     Example:
         MultiHttpToFilesystem(
             http_conn_id='api_connection',
-            base_endpoint='/api/v1',
             headers={'Authorization': 'Bearer token'},
             multi_requests=[
                 {'endpoint': '/users/1'},
                 {'endpoint': '/users/2', 'method': 'POST', 'data': {...}},
-                {'endpoint': '/orders', 'headers': {'Custom': 'Header'}}
+                {'endpoint': '/orders', 'headers': {'Custom': 'Header'}},
             ]
         )
 
     Notes:
         - Pagination is not supported
-        - Requests are executed sequentially within the task
+        - Requests are executed sequentially by default; set max_workers for concurrency
         - Per-request values override base configuration with dict merging for
           headers/data, and replacement for other parameters
-        - All validations are re-applied after each request configuration
+        - All validations are re-applied after each request configuration override
     """
 
     template_fields = HttpToFilesystem.template_fields + ["multi_requests"]
@@ -356,11 +384,15 @@ class MultiHttpToFilesystem(HttpToFilesystem):
         "multi_requests": "py",
     }
 
-    # Allowed keys come from the TypedDict (so static + runtime stay in sync)
     _ALLOWED_KEYS = set(RequestSpec.__annotations__.keys())
 
-    def __init__(self, *, multi_requests: list[RequestSpec], **kwargs):
-        # No pagination in this multi operator
+    def __init__(
+        self,
+        *,
+        multi_requests: list[RequestSpec],
+        max_workers: int | None = None,
+        **kwargs,
+    ):
         if kwargs.get("pagination_function") is not None:
             raise ValueError("Pagination is not supported in MultiHttpToFilesystem")
 
@@ -369,6 +401,7 @@ class MultiHttpToFilesystem(HttpToFilesystem):
 
         super().__init__(**kwargs)
         self.multi_requests: list[RequestSpec] = multi_requests
+        self.max_workers = max_workers
 
     def _capture_request_state(self) -> RequestState:
         return {
@@ -396,29 +429,24 @@ class MultiHttpToFilesystem(HttpToFilesystem):
 
     @staticmethod
     def _merge_or_replace(base_val: Any, override_val: Any) -> Any:
-        # Shallow-merge dicts; otherwise replace.
         if isinstance(base_val, dict) and isinstance(override_val, dict):
             return {**base_val, **override_val}
         return override_val
 
     def _apply_request_overrides(self, spec: RequestSpec, base: RequestState) -> None:
-        """
-            Apply per-request configuration overrides on top of base operator settings.
+        """Apply per-request configuration overrides on top of base operator settings.
 
         Args:
-            spec: Request-specific configuration overrides
-            base: Base operator configuration to restore after request
+            spec: Request-specific configuration overrides.
+            base: Base operator configuration to restore after request.
 
         Raises:
-            ValueError: If spec contains unknown keys or invalid combinations
+            ValueError: If spec contains unknown keys or invalid combinations.
         """
-
-        # Validate allowed override keys
         unknown = set(spec.keys()) - self._ALLOWED_KEYS
         if unknown:
             raise ValueError(f"Unknown keys in multi_requests item: {sorted(unknown)}")
 
-        # Simple fields
         self.endpoint = spec.get("endpoint", base["endpoint"])
         self.method = spec.get("method", base["method"])
         self.auth_type = spec.get("auth_type", base["auth_type"])
@@ -426,7 +454,6 @@ class MultiHttpToFilesystem(HttpToFilesystem):
             "jmespath_expression", base["jmespath_expression"]
         )
 
-        # Dict-like merge/replace behavior
         if "headers" in spec:
             self.headers = self._merge_or_replace(base["headers"], spec["headers"])
         else:
@@ -437,22 +464,19 @@ class MultiHttpToFilesystem(HttpToFilesystem):
         else:
             self.data = base["data"]
 
-        # Formats & compression
         self.save_format = spec.get("save_format", base["save_format"])
         self.source_format = spec.get("source_format", base["source_format"])
         self.compression = spec.get("compression", base["compression"])
 
-        # Validate this request's final state
         self._validate_current_request_state()
 
     def _validate_current_request_state(self) -> None:
-        # Re-apply critical validations that may be affected by per-request overrides
         if (
-            self.save_format in self.binary_response_source_format
+            self.source_format in self.binary_response_source_format
             and self.compression is not None
         ):
             raise ValueError(
-                f"Compression is not supported for binary response save formats: "
+                f"Compression is not supported for binary source formats: "
                 f"{self.binary_response_source_format}"
             )
         if self.data_transformation and not callable(self.data_transformation):
@@ -466,15 +490,91 @@ class MultiHttpToFilesystem(HttpToFilesystem):
                 "data_transformation must be provided if data_transformation_kwargs is provided"
             )
 
-    def execute(self, context) -> Any:
+    @staticmethod
+    def _execute_one_request(
+        base_op: "MultiHttpToFilesystem",
+        context: Context,
+        spec: RequestSpec,
+        base_state: RequestState,
+        file_number: int,
+    ) -> None:
+        """Execute a single request as an independent HttpToFilesystem (thread-safe).
+
+        Creates a standalone operator instance with the merged configuration so that
+        parallel workers never share mutable state.
+        """
+        unknown = set(spec.keys()) - MultiHttpToFilesystem._ALLOWED_KEYS
+        if unknown:
+            raise ValueError(f"Unknown keys in multi_requests item: {sorted(unknown)}")
+
+        merged: dict[str, Any] = {
+            "endpoint": spec.get("endpoint", base_state["endpoint"]),
+            "method": spec.get("method", base_state["method"]),
+            "auth_type": spec.get("auth_type", base_state["auth_type"]),
+            "jmespath_expression": spec.get(
+                "jmespath_expression", base_state["jmespath_expression"]
+            ),
+            "headers": MultiHttpToFilesystem._merge_or_replace(
+                base_state["headers"], spec["headers"]
+            )
+            if "headers" in spec
+            else base_state["headers"],
+            "data": MultiHttpToFilesystem._merge_or_replace(
+                base_state["data"], spec["data"]
+            )
+            if "data" in spec
+            else base_state["data"],
+            "save_format": spec.get("save_format", base_state["save_format"]),
+            "source_format": spec.get("source_format", base_state["source_format"]),
+            "compression": spec.get("compression", base_state["compression"]),
+        }
+
+        op = HttpToFilesystem(
+            task_id=f"http-{uuid.uuid4()}",
+            http_conn_id=base_op.http_conn_id,
+            filesystem_conn_id=base_op.filesystem_conn_id,
+            filesystem_path=base_op.filesystem_path,
+            data_transformation=base_op.data_transformation,
+            data_transformation_kwargs=base_op.data_transformation_kwargs or None,
+            create_file_on_success=base_op.create_file_on_success,
+            strict_response_schema=base_op.strict_response_schema,
+            requests_per_second=None,
+            file_number_start=file_number,
+            **merged,
+        )
+        op.execute(context)
+
+    def execute(self, context: Context) -> Any:
         base = self._capture_request_state()
-        for i, spec in enumerate(self.multi_requests, start=1):
-            self.file_number_start = i
-            try:
-                self._apply_request_overrides(spec, base)
-                super().execute(context)
-            finally:
-                self._restore_request_state(base)
+
+        if self.max_workers:
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                futures = [
+                    executor.submit(
+                        MultiHttpToFilesystem._execute_one_request,
+                        self,
+                        context,
+                        spec,
+                        base,
+                        i,
+                    )
+                    for i, spec in enumerate(self.multi_requests, start=1)
+                ]
+                for future in as_completed(futures):
+                    future.result()
+        else:
+            delay = (
+                (1.0 / self.requests_per_second) if self.requests_per_second else 0.0
+            )
+            for i, spec in enumerate(self.multi_requests, start=1):
+                if i > 1 and delay > 0:
+                    time.sleep(delay)
+                self.file_number_start = i
+                try:
+                    self._apply_request_overrides(spec, base)
+                    super().execute(context)
+                finally:
+                    self._restore_request_state(base)
 
 
 def list_to_jsonl(data: list[dict], compression: "CompressionOptions") -> BytesIO:
