@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from io import BytesIO
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -18,8 +19,8 @@ from airflow_toolkit.providers.filesystem.operators.http_to_filesystem import (
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
-def _op(**kwargs) -> HttpToFilesystem:
-    defaults = dict(
+def _op(**kwargs: Any) -> HttpToFilesystem:
+    defaults: dict[str, Any] = dict(
         task_id="test",
         http_conn_id="http_test",
         filesystem_conn_id="fs_test",
@@ -27,11 +28,11 @@ def _op(**kwargs) -> HttpToFilesystem:
         save_format="jsonl",
     )
     defaults.update(kwargs)
-    return HttpToFilesystem(**defaults)
+    return HttpToFilesystem(**defaults)  # type: ignore[arg-type]
 
 
-def _multi_op(**kwargs) -> MultiHttpToFilesystem:
-    defaults = dict(
+def _multi_op(**kwargs: Any) -> MultiHttpToFilesystem:
+    defaults: dict[str, Any] = dict(
         task_id="test",
         http_conn_id="http_test",
         filesystem_conn_id="fs_test",
@@ -40,7 +41,7 @@ def _multi_op(**kwargs) -> MultiHttpToFilesystem:
         multi_requests=[{"endpoint": "/a"}],
     )
     defaults.update(kwargs)
-    return MultiHttpToFilesystem(**defaults)
+    return MultiHttpToFilesystem(**defaults)  # type: ignore[arg-type]
 
 
 def _mock_response(json_data=None, text: str = "", content: bytes = b"") -> MagicMock:
