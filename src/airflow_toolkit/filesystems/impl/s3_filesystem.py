@@ -1,8 +1,11 @@
+import logging
 from io import BytesIO
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
+
+logger = logging.getLogger(__name__)
 
 
 class S3Filesystem(FilesystemProtocol):
@@ -25,6 +28,7 @@ class S3Filesystem(FilesystemProtocol):
 
     def delete_file(self, path: str):
         bucket_name, key_name = _get_bucket_and_key_name(path)
+        logger.info(f'Deleting s3 object "{key_name}" from bucket "{bucket_name}"')
         self.hook.delete_objects(bucket_name, [key_name])
 
     def create_prefix(self, prefix: str):
@@ -34,6 +38,11 @@ class S3Filesystem(FilesystemProtocol):
 
     def delete_prefix(self, prefix: str):
         bucket_name, key_prefix = _get_bucket_and_key_name(prefix)
+        keys = self.hook.list_keys(bucket_name, key_prefix) or []
+        logger.info(
+            f'Deleting {len(keys)} object(s) under prefix "{key_prefix}" '
+            f'in bucket "{bucket_name}"'
+        )
         self.hook.get_bucket(bucket_name).objects.filter(Prefix=key_prefix).delete()
 
     def check_file(self, path: str) -> bool:
@@ -55,5 +64,6 @@ class S3Filesystem(FilesystemProtocol):
 
 
 def _get_bucket_and_key_name(path: str) -> tuple[str, str]:
+    path = path.removeprefix("s3://")
     parts = path.split("/")
     return parts[0], "/".join(parts[1:])

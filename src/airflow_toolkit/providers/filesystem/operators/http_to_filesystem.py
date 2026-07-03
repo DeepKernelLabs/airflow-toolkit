@@ -170,6 +170,8 @@ class HttpToFilesystem(BaseOperator):
         file_number_start: int = 1,
         strict_response_schema: bool = True,
         requests_per_second: float | None = None,
+        extra_options: dict[str, Any] | None = None,
+        store_response_filter_data: bool = False,
         *args,
         **kwargs,
     ):
@@ -183,6 +185,9 @@ class HttpToFilesystem(BaseOperator):
         self.data = data
         self.headers = headers
         self.auth_type = auth_type
+        self.extra_options = extra_options
+        self.store_response_filter_data = store_response_filter_data
+        self.response_filter_data: Any = None
         self.jmespath_expression = jmespath_expression
         self.pagination_function = pagination_function
         self.use_new_data_parameters_on_pagination = (
@@ -230,6 +235,7 @@ class HttpToFilesystem(BaseOperator):
             data=self.data,
             headers=self.headers,
             auth_type=self.auth_type,
+            extra_options=self.extra_options,
             response_filter=self._response_filter,
             pagination_function=self.pagination_function,
         )
@@ -292,7 +298,8 @@ class HttpToFilesystem(BaseOperator):
         else:
             data = response.text
 
-        self.response_filter_data = data
+        if self.store_response_filter_data:
+            self.response_filter_data = data
 
         if self.data_transformation and self.data_transformation_kwargs:
             transformed = self.data_transformation(
@@ -539,6 +546,8 @@ class MultiHttpToFilesystem(HttpToFilesystem):
             create_file_on_success=base_op.create_file_on_success,
             strict_response_schema=base_op.strict_response_schema,
             requests_per_second=None,
+            extra_options=base_op.extra_options,
+            store_response_filter_data=base_op.store_response_filter_data,
             file_number_start=file_number,
             **merged,
         )

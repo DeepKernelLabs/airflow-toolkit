@@ -126,7 +126,7 @@ class FilesystemToDatabaseOperator(BaseOperator):
         self.source_format_options = source_format_options
         self.batch_size = batch_size
         self.table_aggregation_type = table_aggregation_type
-        self.metadata = metadata or {"_DS": "{{ ds }}"}
+        self.metadata = {"_DS": "{{ ds }}"} if metadata is None else metadata
         self.metadata_columns_in_uppercase = metadata_columns_in_uppercase
         self.include_source_path = include_source_path
         self.normalize_unicode = normalize_unicode
@@ -512,6 +512,7 @@ class FilesystemToDatabaseOperator(BaseOperator):
         if self.db_table not in inspector.get_table_names(schema=schema):
             return
 
+        preparer = engine.dialect.identifier_preparer
         conditions = []
         params: dict[str, Any] = {}
         for key, value in self.metadata.items():
@@ -519,15 +520,15 @@ class FilesystemToDatabaseOperator(BaseOperator):
                 key.upper() if self.metadata_columns_in_uppercase else key.lower()
             )
             param_key = f"meta_{col_name}"
-            conditions.append(f'"{col_name}" = :{param_key}')
+            conditions.append(f"{preparer.quote(col_name)} = :{param_key}")
             params[param_key] = value
 
         if not conditions:
             return
 
-        schema_prefix = f'"{schema}".' if schema else ""
+        schema_prefix = f"{preparer.quote(schema)}." if schema else ""
         where_clause = " AND ".join(conditions)
-        sql = f'DELETE FROM {schema_prefix}"{self.db_table}" WHERE {where_clause}'
+        sql = f"DELETE FROM {schema_prefix}{preparer.quote(self.db_table)} WHERE {where_clause}"
 
         with engine.begin() as conn:
             result = conn.execute(text(sql), params)
@@ -558,6 +559,7 @@ class FilesystemToDatabaseOperator(BaseOperator):
             if col["name"] not in self.metadata
         }
 
+        preparer = engine.dialect.identifier_preparer
         only_in_source = source_columns - table_columns
         with engine.begin() as db_conn:
             for column in only_in_source:
@@ -566,7 +568,10 @@ class FilesystemToDatabaseOperator(BaseOperator):
                     f"file — adding it as TEXT."
                 )
                 db_conn.execute(
-                    text(f'ALTER TABLE "{table_name}" ADD COLUMN "{column}" TEXT')
+                    text(
+                        f"ALTER TABLE {preparer.quote(table_name)} "
+                        f"ADD COLUMN {preparer.quote(column)} TEXT"
+                    )
                 )
 
         only_in_table = table_columns - source_columns

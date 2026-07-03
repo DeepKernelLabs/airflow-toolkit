@@ -53,13 +53,13 @@ class DuckdbToDeltalakeOperator(BaseOperator):
             )
 
         logger.info("Create secret for duckdb")
-        escaped = connection_string.replace("'", "''")
         duckdb_conn.execute(
-            f"""
+            """
             CREATE OR REPLACE SECRET delta_lake_secret (
                 TYPE AZURE,
-                CONNECTION_STRING '{escaped}'
-            );"""
+                CONNECTION_STRING ?
+            );""",
+            [connection_string],
         )
 
         logger.info("Write data to delta lake")

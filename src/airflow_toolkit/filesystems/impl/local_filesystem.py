@@ -1,9 +1,12 @@
+import logging
 import shutil
 from io import BytesIO
 from pathlib import Path
 
 from airflow_toolkit._compact.airflow_shim import FSHook
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
+
+logger = logging.getLogger(__name__)
 
 
 class LocalFilesystem(FilesystemProtocol):
@@ -27,6 +30,7 @@ class LocalFilesystem(FilesystemProtocol):
 
     def delete_file(self, path: str):
         path_to_delete = Path(self.hook.get_path()) / path.lstrip("/")
+        logger.info(f'Deleting file "{path_to_delete}"')
         path_to_delete.unlink()
 
     def create_prefix(self, prefix: str):
@@ -35,6 +39,7 @@ class LocalFilesystem(FilesystemProtocol):
 
     def delete_prefix(self, prefix: str):
         path_to_delete = Path(self.hook.get_path()) / prefix.lstrip("/")
+        logger.info(f'Deleting directory tree "{path_to_delete}"')
         shutil.rmtree(str(path_to_delete))
 
     def check_file(self, path: str) -> bool:

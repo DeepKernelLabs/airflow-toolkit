@@ -108,6 +108,7 @@ def test_http_to_data_lake_response_format_jsonl_with_jmespath_expression(
             method="GET",
             save_format="jsonl",
             jmespath_expression="data[:2].{id: id, email: email}",
+            store_response_filter_data=True,
         )
         http_to_data_lake_op.execute({"ds": "2024-01-03"})
 
@@ -171,6 +172,7 @@ def test_http_to_data_lake_response_format_jsonl_without_jmespath_expression(
             method="GET",
             save_format="jsonl",
             jmespath_expression=None,
+            store_response_filter_data=True,
         )
         http_to_data_lake_list_op.execute({"ds": "2024-01-03"})
 
@@ -192,6 +194,7 @@ def test_http_to_data_lake_response_format_json_with_jmespath_expression(
             method="GET",
             save_format="json",
             jmespath_expression="{page:page,total:total}",
+            store_response_filter_data=True,
         )
         http_to_data_lake_op.execute({"ds": "2024-01-03"})
 

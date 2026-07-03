@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from io import BytesIO
 
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
 from airflow_toolkit.providers.microsoft.hooks.sharepoint import SharePointHook
+
+logger = logging.getLogger(__name__)
 
 
 class SharePointFilesystem(FilesystemProtocol):
@@ -43,6 +46,7 @@ class SharePointFilesystem(FilesystemProtocol):
     def delete_file(self, path: str):
         ctx = self.hook.get_conn()
         url = self._server_relative_url(path)
+        logger.info(f'Deleting SharePoint file "{url}"')
         ctx.web.get_file_by_server_relative_url(url).delete_object()
         ctx.execute_query()
 
@@ -55,6 +59,7 @@ class SharePointFilesystem(FilesystemProtocol):
     def delete_prefix(self, prefix: str):
         ctx = self.hook.get_conn()
         url = self._server_relative_url(prefix)
+        logger.info(f'Deleting SharePoint folder "{url}"')
         ctx.web.get_folder_by_server_relative_url(url).delete_object()
         ctx.execute_query()
 

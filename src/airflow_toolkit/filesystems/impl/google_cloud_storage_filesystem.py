@@ -1,8 +1,11 @@
+import logging
 from io import BytesIO
 
 from airflow.providers.google.cloud.hooks.gcs import GCSHook
 
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
+
+logger = logging.getLogger(__name__)
 
 
 class GCSFilesystem(FilesystemProtocol):
@@ -21,6 +24,7 @@ class GCSFilesystem(FilesystemProtocol):
 
     def delete_file(self, path: str):
         bucket_name, object_name = _get_bucket_and_key_name(path)
+        logger.info(f'Deleting gcs object "{object_name}" from bucket "{bucket_name}"')
         self.hook.delete(bucket_name, object_name)
 
     def create_prefix(self, prefix: str):
@@ -33,6 +37,10 @@ class GCSFilesystem(FilesystemProtocol):
         bucket_name, key_prefix = _get_bucket_and_key_name(prefix)
         objects = self.hook.list(bucket_name, prefix=key_prefix)
         if objects:
+            logger.info(
+                f'Deleting {len(objects)} object(s) under prefix "{key_prefix}" '
+                f'in bucket "{bucket_name}"'
+            )
             for object_name in objects:
                 self.hook.delete(bucket_name, object_name)
 

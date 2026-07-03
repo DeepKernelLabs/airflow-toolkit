@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 
 from airflow_toolkit.providers.deltalake.operators.filesystem_to_database import (
     FilesystemToDatabaseOperator,
@@ -272,23 +272,16 @@ class TestCheckAndFixColumnDifferences:
         )
         assert result == {"b", "c"}
 
-    def test_issues_alter_table_for_new_source_columns(self):
-        mock_engine = MagicMock()
-        mock_inspector = MagicMock()
-        mock_inspector.get_table_names.return_value = ["test_table"]
-        mock_inspector.get_columns.return_value = [{"name": "a"}]
+    def test_issues_alter_table_for_new_source_columns(self, tmp_path):
+        engine = self._sqlite_engine(tmp_path, "CREATE TABLE test_table (a TEXT)")
 
-        executed: list[str] = []
-        mock_db_conn = MagicMock()
-        mock_db_conn.execute.side_effect = lambda stmt: executed.append(str(stmt))
-        mock_engine.begin.return_value.__enter__.return_value = mock_db_conn
+        _make_op()._check_and_fix_column_differences(
+            {"a", "new_col"}, "test_table", engine
+        )
 
-        with patch(f"{_MODULE}.inspect", return_value=mock_inspector):
-            _make_op()._check_and_fix_column_differences(
-                {"a", "new_col"}, "test_table", mock_engine
-            )
-
-        assert any('"new_col"' in sql for sql in executed)
+        inspector = inspect(engine)
+        columns = {col["name"] for col in inspector.get_columns("test_table")}
+        assert "new_col" in columns
 
     def test_metadata_columns_excluded_from_comparison(self, tmp_path):
         engine = self._sqlite_engine(

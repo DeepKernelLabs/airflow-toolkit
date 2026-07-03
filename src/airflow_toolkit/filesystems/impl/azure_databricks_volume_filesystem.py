@@ -29,6 +29,7 @@ class AzureDatabricksVolumeFilesystem(FilesystemProtocol):
         self.hook.get_conn().files.upload(path, BytesIO(data))
 
     def delete_file(self, path: str):
+        logger.info(f'Deleting volume file "{path}"')
         self.hook.get_conn().files.delete(path)
 
     def create_prefix(self, prefix: str):
@@ -42,6 +43,9 @@ class AzureDatabricksVolumeFilesystem(FilesystemProtocol):
         except NotFound:
             return
 
+        logger.info(
+            f'Deleting {len(entries)} entr(ies) under volume directory "{prefix}"'
+        )
         for entry in entries:
             if entry.path is None:
                 continue

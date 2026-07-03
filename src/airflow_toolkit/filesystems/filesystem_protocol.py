@@ -13,7 +13,14 @@ class FilesystemProtocol(Protocol):
 
     def delete_prefix(self, prefix: str): ...
 
-    def check_file(self, path: str) -> bool: ...
+    def check_file(self, path: str) -> bool:
+        """Return True if *path* refers to an existing file.
+
+        *path* must name a file, not a directory/prefix — use ``check_prefix()``
+        for that. Passing a directory path here is undefined: implementations
+        may return False or raise, and must not be relied upon either way.
+        """
+        ...
 
     def check_prefix(self, prefix: str) -> bool: ...
 

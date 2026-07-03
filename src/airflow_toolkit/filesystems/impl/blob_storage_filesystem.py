@@ -32,6 +32,9 @@ class BlobStorageFilesystem(FilesystemProtocol):
 
     def delete_file(self, path: str):
         container_name, blob_name = _get_container_and_blob_name(path)
+        logger.info(
+            f'Deleting blob "{blob_name}" from wasb container "{container_name}"'
+        )
         self.hook.delete_file(
             container_name, blob_name, is_prefix=False, ignore_if_missing=True
         )
@@ -42,6 +45,10 @@ class BlobStorageFilesystem(FilesystemProtocol):
 
     def delete_prefix(self, prefix: str):
         container_name, blob_prefix = _get_container_and_blob_name(prefix)
+        logger.info(
+            f'Deleting all blobs under prefix "{blob_prefix}" in wasb container '
+            f'"{container_name}"'
+        )
         self.hook.delete_file(
             container_name, blob_prefix, is_prefix=True, ignore_if_missing=True
         )

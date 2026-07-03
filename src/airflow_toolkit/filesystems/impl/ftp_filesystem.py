@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ftplib
+import logging
 from io import BytesIO
 from typing import TYPE_CHECKING
 
@@ -8,6 +9,8 @@ from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
 
 if TYPE_CHECKING:
     from airflow.providers.ftp.hooks.ftp import FTPHook
+
+logger = logging.getLogger(__name__)
 
 
 class FTPFilesystem(FilesystemProtocol):
@@ -40,6 +43,7 @@ class FTPFilesystem(FilesystemProtocol):
 
     def delete_file(self, path: str):
         conn = self.hook.get_conn()
+        logger.info(f'Deleting FTP file "{path}"')
         conn.delete(self._rel(path))
 
     def create_prefix(self, prefix: str):
@@ -55,6 +59,7 @@ class FTPFilesystem(FilesystemProtocol):
 
     def delete_prefix(self, prefix: str):
         conn = self.hook.get_conn()
+        logger.info(f'Deleting FTP directory tree "{prefix}"')
         _delete_recursive(conn, self._rel(prefix))
 
     def check_file(self, path: str) -> bool:

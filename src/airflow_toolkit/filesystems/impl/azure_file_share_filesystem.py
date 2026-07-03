@@ -26,6 +26,7 @@ class AzureFileShareFilesystem(FilesystemProtocol):
         self.hook.get_conn().get_file_client(path).upload_file(data)
 
     def delete_file(self, path: str):
+        logger.info(f'Deleting file share file "{path}"')
         self.hook.get_conn().get_file_client(path).delete_file()
 
     def create_prefix(self, prefix: str):
@@ -33,6 +34,7 @@ class AzureFileShareFilesystem(FilesystemProtocol):
 
     def delete_prefix(self, prefix: str):
         conn = self.hook.get_conn()
+        logger.info(f'Deleting file share directory tree "{prefix}"')
         for item in conn.list_directories_and_files(prefix):
             if isinstance(item, DirectoryProperties):
                 self.delete_prefix(f"{prefix}/{item.name}")

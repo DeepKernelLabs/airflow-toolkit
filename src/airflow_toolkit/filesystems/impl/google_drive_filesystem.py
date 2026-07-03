@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from io import BytesIO
 
 from airflow_toolkit.filesystems.filesystem_protocol import FilesystemProtocol
 from airflow_toolkit.providers.google.hooks.drive import GoogleDriveHook
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleDriveFilesystem(FilesystemProtocol):
@@ -175,6 +178,7 @@ class GoogleDriveFilesystem(FilesystemProtocol):
         service = self.hook.get_service()
         file_id = self._resolve_id(path)
         if file_id:
+            logger.info(f'Deleting Google Drive file "{path}" (id={file_id})')
             service.files().delete(fileId=file_id, supportsAllDrives=True).execute()
             self._id_cache.pop(path, None)
 
@@ -186,6 +190,7 @@ class GoogleDriveFilesystem(FilesystemProtocol):
         service = self.hook.get_service()
         folder_id = self._resolve_id(prefix, is_folder=True)
         if folder_id:
+            logger.info(f'Deleting Google Drive folder "{prefix}" (id={folder_id})')
             service.files().delete(fileId=folder_id, supportsAllDrives=True).execute()
             self._id_cache = {
                 k: v for k, v in self._id_cache.items() if not k.startswith(prefix)
