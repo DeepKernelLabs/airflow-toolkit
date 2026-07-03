@@ -20,6 +20,9 @@ USER airflow
 #   - postgres: load into PostgreSQL
 #   - http: pull from public APIs
 #   - fab: auth manager (required in Airflow 3)
+#   - deltalake / pyiceberg: FilesystemToDeltalake / FilesystemToIceberg demos (v3.0.0)
+#     sql-postgres extra lets pyiceberg's SqlCatalog use demo_postgres directly,
+#     avoiding a separate REST catalog service just for the demo.
 RUN pip install --no-cache-dir \
     "apache-airflow-providers-amazon>=9.15.0" \
     "apache-airflow-providers-postgres>=5" \
@@ -33,4 +36,6 @@ RUN pip install --no-cache-dir \
     "dbt-postgres>=1.9.0,<2" \
     "astronomer-cosmos>=1.11.0,<2" \
     "openpyxl>=3.1" \
-    "fastavro>=1.9"
+    "fastavro>=1.9" \
+    "deltalake>=1.6,<2" \
+    "pyiceberg[pyarrow,adlfs,sql-postgres]>=0.11,<1"

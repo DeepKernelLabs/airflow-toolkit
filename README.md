@@ -91,6 +91,8 @@ pip install "airflow-toolkit[airflow3-full]"
 | `ftp` | `providers-ftp` | FTP filesystem backend |
 | `sharepoint` | `Office365-REST-Python-Client` | SharePoint filesystem backend |
 | `google_drive` | `google-api-python-client`, `google-auth` | Google Drive filesystem backend |
+| `deltalake` | `deltalake`, `pandas` | `FilesystemToDeltalake` operator |
+| `iceberg` | `pyiceberg[pyarrow,adlfs]` | `FilesystemToIceberg` operator |
 | `airflow3-full` | all of the above | Quick start / development |
 
 ---
@@ -448,6 +450,60 @@ DuckdbToDeltalakeOperator(
     extensions=['azure'],
 )
 ```
+
+### FilesystemToDeltalake
+
+Reads files from any filesystem and writes them to a Delta Lake table on S3, GCS, or Azure Blob. Schema evolution (new columns in later files) is handled automatically. Metadata columns are always written as strings.
+
+**Supported formats:** `csv`, `json`, `parquet`, `excel`, `avro`, `fixed_width` (requires the `[deltalake]` extra).
+
+```python
+from airflow_toolkit.providers.deltalake.operators.filesystem_to_deltalake import FilesystemToDeltalakeOperator
+
+FilesystemToDeltalakeOperator(
+    task_id='load_orders_delta',
+    filesystem_conn_id='my_data_lake',        # any supported conn_type
+    filesystem_path='raw/orders/{{ ds }}/',
+    table_path='s3://my-bucket/delta/orders',
+    delta_storage_conn_id='my_s3_conn',       # conn_type: aws | wasb | google_cloud_platform. Omit to let delta-rs resolve credentials from the environment.
+    source_format='csv',                      # 'csv' | 'json' | 'parquet' | 'excel' | 'avro' | 'fixed_width'
+    write_mode='append',                      # 'append' | 'overwrite' | 'error' | 'ignore' — ignored when idempotent=True
+    metadata={'_DS': '{{ ds }}'},
+    idempotent=True,                          # deletes rows matching metadata once, upfront, then appends every file — a single atomic commit per file, not two
+)
+```
+
+When `idempotent=True` (the default), `write_mode` has no effect: existing rows matching the current run's `metadata` are deleted in one commit before any file is written, and every file is then appended.
+
+### FilesystemToIceberg
+
+Reads files from any filesystem and writes them to an Iceberg table via any catalog `pyiceberg` supports (REST, SQL, Glue, Hive, …) — `catalog_properties` is passed straight through to `pyiceberg.catalog.load_catalog()`, this operator has no opinion on catalog type. Metadata columns are always written as strings.
+
+**Supported formats:** `csv`, `json`, `parquet`, `excel`, `avro`, `fixed_width` (requires the `[iceberg]` extra).
+
+```python
+from airflow_toolkit.providers.iceberg.operators.filesystem_to_iceberg import FilesystemToIcebergOperator
+
+FilesystemToIcebergOperator(
+    task_id='load_orders_iceberg',
+    filesystem_conn_id='my_data_lake',
+    filesystem_path='raw/orders/{{ ds }}/',
+    catalog_name='my_catalog',
+    catalog_properties={
+        'type': 'rest',
+        'uri': 'https://my-catalog.example.com',
+        's3.access-key-id': '...',
+        's3.secret-access-key': '...',
+    },
+    table_identifier='orders_db.orders',
+    source_format='csv',
+    write_mode='append',    # 'append' | 'overwrite' — ignored when idempotent=True
+    metadata={'_DS': '{{ ds }}'},
+    idempotent=True,
+)
+```
+
+Unlike Delta Lake, pyiceberg's public write API needs a fully materialized `pyarrow.Table` per write — there is no streaming writer. Each batch of up to `batch_size` rows is committed as its own Iceberg snapshot: memory stays bounded per batch, but a single source file can produce several snapshots instead of one atomic commit. This is a common pattern for streaming writers to Iceberg; tables accumulating many small files can be compacted later via `table.maintenance`.
 
 ---
 
