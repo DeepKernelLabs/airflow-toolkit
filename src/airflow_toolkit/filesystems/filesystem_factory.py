@@ -12,15 +12,13 @@ class FilesystemFactory:
                 BlobStorageFilesystem,
             )
 
-            hook = WasbHook(wasb_conn_id=connection.conn_id)
-            return BlobStorageFilesystem(hook)
+            return BlobStorageFilesystem(WasbHook(wasb_conn_id=connection.conn_id))
         elif connection.conn_type == "aws":
             from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
             from airflow_toolkit.filesystems.impl.s3_filesystem import S3Filesystem
 
-            hook = S3Hook(aws_conn_id=connection.conn_id)
-            return S3Filesystem(hook)
+            return S3Filesystem(S3Hook(aws_conn_id=connection.conn_id))
         elif connection.conn_type == "google_cloud_platform":
             from airflow.providers.google.cloud.hooks.gcs import GCSHook
 
@@ -28,22 +26,19 @@ class FilesystemFactory:
                 GCSFilesystem,
             )
 
-            hook = GCSHook(gcp_conn_id=connection.conn_id)
-            return GCSFilesystem(hook)
+            return GCSFilesystem(GCSHook(gcp_conn_id=connection.conn_id))
         elif connection.conn_type == "sftp":
             from airflow.providers.sftp.hooks.sftp import SFTPHook
 
             from airflow_toolkit.filesystems.impl.sftp_filesystem import SFTPFilesystem
 
-            hook = SFTPHook(ssh_conn_id=connection.conn_id)
-            return SFTPFilesystem(hook)
+            return SFTPFilesystem(SFTPHook(ssh_conn_id=connection.conn_id))
         elif connection.conn_type == "fs":
             from airflow_toolkit.filesystems.impl.local_filesystem import (
                 LocalFilesystem,
             )
 
-            hook = FSHook(fs_conn_id=connection.conn_id)
-            return LocalFilesystem(hook)
+            return LocalFilesystem(FSHook(fs_conn_id=connection.conn_id))
         elif connection.conn_type == "azure_file_share_sp":
             from airflow_toolkit.filesystems.impl.azure_file_share_filesystem import (
                 AzureFileShareFilesystem,
@@ -52,8 +47,9 @@ class FilesystemFactory:
                 AzureFileShareServicePrincipalHook,
             )
 
-            hook = AzureFileShareServicePrincipalHook(conn_id=connection.conn_id)
-            return AzureFileShareFilesystem(hook)
+            return AzureFileShareFilesystem(
+                AzureFileShareServicePrincipalHook(conn_id=connection.conn_id)
+            )
         elif connection.conn_type == "azure_databricks_volume":
             from airflow_toolkit.filesystems.impl.azure_databricks_volume_filesystem import (
                 AzureDatabricksVolumeFilesystem,
@@ -62,17 +58,17 @@ class FilesystemFactory:
                 AzureDatabricksVolumeHook,
             )
 
-            hook = AzureDatabricksVolumeHook(
-                azure_databricks_volume_conn_id=connection.conn_id
+            return AzureDatabricksVolumeFilesystem(
+                AzureDatabricksVolumeHook(
+                    azure_databricks_volume_conn_id=connection.conn_id
+                )
             )
-            return AzureDatabricksVolumeFilesystem(hook)
         elif connection.conn_type == "ftp":
             from airflow.providers.ftp.hooks.ftp import FTPHook
 
             from airflow_toolkit.filesystems.impl.ftp_filesystem import FTPFilesystem
 
-            hook = FTPHook(ftp_conn_id=connection.conn_id)
-            return FTPFilesystem(hook)
+            return FTPFilesystem(FTPHook(ftp_conn_id=connection.conn_id))
         elif connection.conn_type == "sharepoint":
             from airflow_toolkit.filesystems.impl.sharepoint_filesystem import (
                 SharePointFilesystem,
@@ -81,16 +77,14 @@ class FilesystemFactory:
                 SharePointHook,
             )
 
-            hook = SharePointHook(conn_id=connection.conn_id)
-            return SharePointFilesystem(hook)
+            return SharePointFilesystem(SharePointHook(conn_id=connection.conn_id))
         elif connection.conn_type == "google_drive":
             from airflow_toolkit.filesystems.impl.google_drive_filesystem import (
                 GoogleDriveFilesystem,
             )
             from airflow_toolkit.providers.google.hooks.drive import GoogleDriveHook
 
-            hook = GoogleDriveHook(conn_id=connection.conn_id)
-            return GoogleDriveFilesystem(hook)
+            return GoogleDriveFilesystem(GoogleDriveHook(conn_id=connection.conn_id))
         else:
             raise NotImplementedError(
                 f"Data Lake type {connection.conn_type} is not supported"

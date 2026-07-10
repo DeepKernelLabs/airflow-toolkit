@@ -20,6 +20,12 @@ SaveFormat = Literal["jsonl"]
 
 MetadataSpec = dict[str, str]
 
+# ── Warehouse (COPY INTO) ──────────────────────────────────────────────────
+# Subset of the toolkit-wide source_format Literal — "excel"/"fixed_width"
+# have no equivalent FILEFORMAT/FILE_FORMAT TYPE in any warehouse's COPY INTO.
+
+WarehouseSourceFormat = Literal["csv", "json", "parquet", "avro"]
+
 # ── HTTP multi-request ─────────────────────────────────────────────────────
 
 

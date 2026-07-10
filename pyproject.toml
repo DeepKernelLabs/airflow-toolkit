@@ -1,6 +1,6 @@
 [project]
 name = "airflow-toolkit"
-version = "3.0.0"
+version = "3.1.0"
 description = "A toolkit of operators, hooks and utilities for Apache Airflow 3"
 authors = [{ name = "Biel Llobera", email = "biel_llobera@dkl.digital" }]
 requires-python = ">=3.11,<3.15"
@@ -72,6 +72,16 @@ deltalake = [
 iceberg = [
     "pyiceberg[pyarrow,adlfs]>=0.11,<1",
 ]
+warehouse_databricks = [
+    "apache-airflow-providers-databricks>=6",
+]
+warehouse_snowflake = [
+    "apache-airflow-providers-snowflake>=5",
+]
+warehouse = [
+    "apache-airflow-providers-databricks>=6",
+    "apache-airflow-providers-snowflake>=5",
+]
 airflow3-full = [
     "apache-airflow>=3,<4",
     "apache-airflow-providers-fab>=3.0.0",
@@ -96,6 +106,8 @@ airflow3-full = [
     "google-api-python-client>=2",
     "google-auth>=2",
     "pyiceberg[pyarrow,adlfs]>=0.11,<1",
+    "apache-airflow-providers-databricks>=6",
+    "apache-airflow-providers-snowflake>=5",
 ]
 
 [dependency-groups]

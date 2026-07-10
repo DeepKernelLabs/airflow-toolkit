@@ -93,6 +93,9 @@ pip install "airflow-toolkit[airflow3-full]"
 | `google_drive` | `google-api-python-client`, `google-auth` | Google Drive filesystem backend |
 | `deltalake` | `deltalake`, `pandas` | `FilesystemToDeltalake` operator |
 | `iceberg` | `pyiceberg[pyarrow,adlfs]` | `FilesystemToIceberg` operator |
+| `warehouse_databricks` | `apache-airflow-providers-databricks` | `FilesystemToWarehouse` operator, Databricks dialect |
+| `warehouse_snowflake` | `apache-airflow-providers-snowflake` | `FilesystemToWarehouse` operator, Snowflake dialect |
+| `warehouse` | both of the above | `FilesystemToWarehouse` operator, either dialect |
 | `airflow3-full` | all of the above | Quick start / development |
 
 ---
@@ -504,6 +507,61 @@ FilesystemToIcebergOperator(
 ```
 
 Unlike Delta Lake, pyiceberg's public write API needs a fully materialized `pyarrow.Table` per write — there is no streaming writer. Each batch of up to `batch_size` rows is committed as its own Iceberg snapshot: memory stays bounded per batch, but a single source file can produce several snapshots instead of one atomic commit. This is a common pattern for streaming writers to Iceberg; tables accumulating many small files can be compacted later via `table.maintenance`.
+
+### FilesystemToWarehouse
+
+Loads files already sitting in your data lake into a Databricks SQL Warehouse or Snowflake table via `COPY INTO` — unlike every other operator above, this is a **warehouse-side bulk load**: the warehouse itself reads from cloud storage, this operator never downloads or streams file bytes through the Airflow worker. `source_location` is therefore a plain templated string, not derived from a filesystem connection — a cloud URI for Databricks, `@stage/path` for Snowflake.
+
+**Supported formats:** `csv`, `json`, `parquet`, `avro` (requires the `[warehouse_databricks]` and/or `[warehouse_snowflake]` extra). `excel`/`fixed_width` have no equivalent in any warehouse's `COPY INTO`.
+
+Table/schema creation is entirely your responsibility — pass `create_table_ddl` to run it once before the `COPY INTO` (bundled into this same task), or leave it `None` and create the table in an earlier task of your own DAG. This operator never invents column types.
+
+`metadata` values are raw SQL value expressions (not plain literals) — they're embedded verbatim as `<expr> AS <column>` in both the `COPY INTO`'s `SELECT` list and the idempotent `DELETE`'s `WHERE` clause, so you control any cast your target column needs, exactly like writing the SQL by hand.
+
+```python
+from airflow_toolkit.providers.warehouse.operators.filesystem_to_warehouse import FilesystemToWarehouseOperator
+
+# Databricks
+FilesystemToWarehouseOperator(
+    task_id='load_orders_databricks',
+    dialect='databricks',
+    warehouse_conn_id='my_databricks_sql',
+    database='main',                          # Unity Catalog catalog — required for Databricks
+    schema='raw',
+    table='orders',
+    source_location='gs://my-bucket/raw/orders/{{ ds }}/*.json',
+    source_format='json',
+    create_table_ddl='''
+        CREATE SCHEMA IF NOT EXISTS main.raw;
+        CREATE TABLE IF NOT EXISTS main.raw.orders USING DELTA LOCATION 'gs://my-bucket/delta/orders/';
+    ''',
+    metadata={'_DS': "'{{ ds }}'"},
+    idempotent=True,
+)
+
+# Snowflake
+FilesystemToWarehouseOperator(
+    task_id='load_orders_snowflake',
+    dialect='snowflake',
+    warehouse_conn_id='my_snowflake_conn',
+    database='analytics',
+    schema='raw',
+    table='orders',
+    source_location='@my_stage/raw/orders/{{ ds_nodash }}',
+    source_format='json',
+    # source_format='csv' would raise ValueError here unless select_fragment
+    # is supplied explicitly — Snowflake has no generic, schema-agnostic
+    # default for typed loads (Databricks does: `*`).
+    metadata={'_DS': "'{{ ds }}'"},
+    idempotent=True,
+)
+```
+
+Default `select_fragment` by `source_format` (when not supplied): for `json`, Databricks defaults to `to_json(struct(*)) AS _raw` and Snowflake to `$1 AS _raw` — both wrap the whole record in one column, matching the common bronze-layer pattern where a downstream transform (e.g. dbt) does field extraction. For `csv`/`parquet`/`avro`, Databricks defaults to `*` (real typed columns — `COPY INTO` already exposes them); **Snowflake has no safe generic default for these and raises `ValueError`**, since positional `$1,$2,...` needs the file's column order and `SELECT *` can't inject metadata columns the way this operator's `FROM (SELECT ...)` shape requires — pass `select_fragment` explicitly (e.g. `"$1:id::INT AS id, $1:name::STRING AS name"`).
+
+When `idempotent=True` (the default) and `metadata` is non-empty, rows matching the current run's metadata values are deleted once, upfront, before the `COPY INTO` — this does not rely on either warehouse's native file-load-history dedup, which only prevents literally-the-same-file from reloading, not reprocessing the same logical partition after a corrected file.
+
+An optional preflight check (`filesystem_conn_id` + `filesystem_path`, `preflight_check=True` by default) fails the task before spending any warehouse compute if the source prefix has no files — this is the only place `FilesystemProtocol` is used by this operator.
 
 ---
 
